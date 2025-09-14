@@ -56,7 +56,7 @@
 <div class="rounded-2xl bg-[var(--secondary-500)] p-5">
 <div class="mb-4">
 <p class="text-base font-medium text-white">Tasks Completed</p>
-<p class="text-4xl font-bold text-white">12</p>
+<p id="tasks-completed-value" class="text-4xl font-bold text-white">12</p>
 <div class="flex items-center gap-2">
 <p class="text-sm text-[var(--secondary-300)]">This Week</p>
 <p class="flex items-center text-sm font-medium text-[var(--success-500)]">
@@ -93,7 +93,7 @@
 <div class="rounded-2xl bg-[var(--secondary-500)] p-5">
 <div class="mb-4">
 <p class="text-base font-medium text-white">Time Spent</p>
-<p class="text-4xl font-bold text-white">15h 30m</p>
+<p id="time-spent-value" class="text-4xl font-bold text-white">15h 30m</p>
 <div class="flex items-center gap-2">
 <p class="text-sm text-[var(--secondary-300)]">This Week</p>
 <p class="flex items-center text-sm font-medium text-[var(--success-500)]">
@@ -132,7 +132,7 @@
 </div>
 <footer class="sticky bottom-0 bg-[var(--secondary-500)] pb-5 pt-2 shadow-[0_-1px_10px_rgba(0,0,0,0.2)]">
 <nav class="flex justify-around">
-<a class="flex flex-1 flex-col items-center justify-center gap-1 text-[var(--secondary-300)]" href="#">
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-[var(--secondary-300)]" href="goals.html">
 <span class="material-symbols-outlined"> emoji_events </span>
 <span class="text-xs font-medium">Goals</span>
 </a>
@@ -140,7 +140,7 @@
 <span class="material-symbols-outlined"> checklist </span>
 <span class="text-xs font-medium">Tasks</span>
 </a>
-<a class="flex flex-1 flex-col items-center justify-center gap-1 text-[var(--secondary-300)]" href="#">
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-[var(--secondary-300)]" href="planner.html">
 <span class="material-symbols-outlined"> calendar_month </span>
 <span class="text-xs font-medium">Planner</span>
 </a>
@@ -155,5 +155,6 @@
 </nav>
 </footer>
 </div>
-
+<div id="toast-container" class="fixed bottom-24 right-4 space-y-2 z-50"></div>
+<script src="script.js" defer></script>
 </body></html>
