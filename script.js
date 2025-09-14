@@ -1,348 +1,335 @@
-// DOM Elements
-const taskForm = document.getElementById('task-form');
-const taskTitleInput = document.getElementById('task-title');
-const taskContentInput = document.getElementById('task-content');
-const taskDueDateInput = document.getElementById('task-due-date');
-const todoTasksContainer = document.getElementById('todo-tasks');
-const inprogressTasksContainer = document.getElementById('inprogress-tasks');
-const doneTasksContainer = document.getElementById('done-tasks');
+document.addEventListener('DOMContentLoaded', () => {
+    // --- DOM Elements ---
+    const taskForm = document.getElementById('task-form');
+    const taskTitleInput = document.getElementById('task-title');
+    const taskContentInput = document.getElementById('task-content');
+    const taskDueDateInput = document.getElementById('task-due-date');
+    const addTaskButton = document.querySelector('#tasks-view header button:last-child');
+    const addTaskModal = document.getElementById('add-task-modal');
+    const cancelTaskButton = document.getElementById('cancel-task-button');
 
-const API_URL = 'http://localhost:8080';
-let db;
+    const API_URL = 'http://localhost:8080';
+    let db;
 
-// --- Database Functions ---
-function openDatabase() {
-    return new Promise((resolve, reject) => {
-        const request = indexedDB.open('StudyflowDB_Tasks', 1);
-
-        request.onupgradeneeded = (event) => {
-            db = event.target.result;
-            if (!db.objectStoreNames.contains('tasks')) {
-                db.createObjectStore('tasks', { keyPath: 'id' });
-            }
-            if (!db.objectStoreNames.contains('tasks_outbox')) {
-                db.createObjectStore('tasks_outbox', { autoIncrement: true });
-            }
-        };
-
-        request.onsuccess = (event) => {
-            db = event.target.result;
-            resolve(db);
-        };
-        request.onerror = (event) => reject(event.target.error);
-    });
-}
-
-// --- Task Rendering ---
-function renderTask(task) {
-    const taskCard = document.createElement('div');
-    taskCard.className = 'task-card';
-    taskCard.setAttribute('data-id', task.id);
-    taskCard.innerHTML = `
-        <h3>${task.title}</h3>
-        <p>${task.content}</p>
-        ${task.dueDate ? `<p class="due-date">Due: ${task.dueDate}</p>` : ''}
-        <select class="status-changer" onchange="updateTaskStatus(${task.id}, this.value)">
-            <option value="todo" ${task.status === 'todo' ? 'selected' : ''}>To Do</option>
-            <option value="inprogress" ${task.status === 'inprogress' ? 'selected' : ''}>In Progress</option>
-            <option value="done" ${task.status === 'done' ? 'selected' : ''}>Done</option>
-        </select>
-    `;
-    if (task.status === 'todo') todoTasksContainer.appendChild(taskCard);
-    else if (task.status === 'inprogress') inprogressTasksContainer.appendChild(taskCard);
-    else doneTasksContainer.appendChild(taskCard);
-}
-
-async function displayTasks() {
-    todoTasksContainer.innerHTML = '';
-    inprogressTasksContainer.innerHTML = '';
-    doneTasksContainer.innerHTML = '';
-
-    const transaction = db.transaction(['tasks'], 'readonly');
-    const store = transaction.objectStore('tasks');
-    const request = store.getAll();
-
-    request.onsuccess = (event) => {
-        const tasks = event.target.result;
-        tasks.forEach(renderTask);
-    };
-    request.onerror = (event) => console.error('Error fetching tasks from IDB:', event.target.error);
-}
-
-// --- Task Actions ---
-taskForm.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    const task = {
-        title: taskTitleInput.value,
-        content: taskContentInput.value,
-        dueDate: taskDueDateInput.value,
-        status: 'todo'
-    };
-
-    const outboxTx = db.transaction(['tasks_outbox'], 'readwrite');
-    outboxTx.objectStore('tasks_outbox').add(task);
-    outboxTx.oncomplete = () => {
-        taskForm.reset();
-        syncOutbox(); // Attempt to sync immediately
-        // Optimistic rendering
-        renderTask({id: 'temp-' + new Date().getTime(), ...task});
-    };
-});
-
-async function updateTaskStatus(id, newStatus) {
-    const tx = db.transaction(['tasks'], 'readwrite');
-    const store = tx.objectStore('tasks');
-    const getReq = store.get(id);
-
-    getReq.onsuccess = () => {
-        const task = getReq.result;
-        task.status = newStatus;
-        store.put(task);
-    };
-
-    tx.oncomplete = () => {
-        // More efficient DOM update instead of re-rendering everything
-        const taskCard = document.querySelector(`.task-card[data-id='${id}']`);
-        if (taskCard) {
-            if (newStatus === 'todo') todoTasksContainer.appendChild(taskCard);
-            else if (newStatus === 'inprogress') inprogressTasksContainer.appendChild(taskCard);
-            else doneTasksContainer.appendChild(taskCard);
-        }
-
-        // Also send update to backend
-        fetch(`${API_URL}/tasks/${id}/status`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: newStatus })
-        }).catch(err => console.error('Failed to sync status update:', err));
-    };
-}
-
-
-// --- Syncing Logic ---
-async function syncOutbox() {
-    const outboxTx = db.transaction('tasks_outbox', 'readonly');
-    const outboxStore = outboxTx.objectStore('tasks_outbox');
-    const getReq = outboxStore.openCursor();
-    const syncedKeys = [];
-
-    getReq.onsuccess = async (event) => {
-        const cursor = event.target.result;
-        if (cursor) {
-            const task = cursor.value;
-            try {
-                const response = await fetch(`${API_URL}/tasks`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(task),
-                });
-                if (response.ok) {
-                    syncedKeys.push(cursor.primaryKey);
-                } else {
-                     console.error('Failed to sync a task, will retry later.', await response.text());
+    // --- Database Functions ---
+    function openDatabase() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open('StudyflowDB_Tasks', 1);
+            request.onupgradeneeded = (event) => {
+                db = event.target.result;
+                if (!db.objectStoreNames.contains('tasks')) {
+                    // Use autoIncrementing key for simplicity
+                    db.createObjectStore('tasks', { keyPath: 'id', autoIncrement: true });
                 }
-            } catch (error) {
-                console.error('Network error during outbox sync. Will retry later.', error);
-                // Stop trying if network is down
-                return;
-            }
-            cursor.continue();
-        } else {
-            // End of cursor, now delete synced items
-            if (syncedKeys.length > 0) {
-                const deleteTx = db.transaction('tasks_outbox', 'readwrite');
-                const deleteStore = deleteTx.objectStore('tasks_outbox');
-                syncedKeys.forEach(key => deleteStore.delete(key));
-                deleteTx.oncomplete = () => {
-                    console.log(`${syncedKeys.length} tasks synced successfully from outbox.`);
-                    syncWithNetwork(); // Refresh data from network
-                };
-            }
+                if (!db.objectStoreNames.contains('tasks_outbox')) {
+                    db.createObjectStore('tasks_outbox', { autoIncrement: true });
+                }
+            };
+            request.onsuccess = (event) => {
+                db = event.target.result;
+                resolve(db);
+            };
+            request.onerror = (event) => reject(event.target.error);
+        });
+    }
+
+    // --- Task Rendering ---
+    function renderTask(task) {
+        const taskContainer = document.querySelector('#tasks-view main');
+        if (!taskContainer) return;
+        const taskElement = document.createElement('div');
+        taskElement.className = 'flex items-center gap-4 bg-[#1C1326] px-4 min-h-[72px] py-3 rounded-2xl';
+        taskElement.setAttribute('data-id', task.id);
+        const isCompleted = task.status === 'done';
+        let dueDateText = 'No due date';
+        if (task.dueDate) {
+            const today = new Date();
+            const dueDate = new Date(task.dueDate);
+            today.setHours(0, 0, 0, 0);
+            dueDate.setHours(0, 0, 0, 0);
+            const diffTime = dueDate.getTime() - today.getTime();
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            if (diffDays === 0) dueDateText = 'Due Today';
+            else if (diffDays === 1) dueDateText = 'Due Tomorrow';
+            else if (diffDays > 1) dueDateText = `Due in ${diffDays} days`;
+            else dueDateText = `Overdue`;
         }
-    };
-}
+        taskElement.innerHTML = `
+            <div class="flex size-7 items-center justify-center">
+                <input type="checkbox" ${isCompleted ? 'checked' : ''} class="task-checkbox h-6 w-6 rounded-full border-[#4d3465] border-2 bg-transparent text-[#9643ea] checked:bg-[#9643ea] checked:border-[#9643ea] checked:bg-[image:--checkbox-tick-svg] focus:ring-0 focus:ring-offset-0 focus:border-[#4d3465] focus:outline-none"/>
+            </div>
+            <div class="flex flex-col justify-center">
+                <p class="text-white text-base font-medium leading-normal ${isCompleted ? 'line-through' : ''}">${task.title}</p>
+                <p class="text-[#ad93c8] text-sm font-normal leading-normal">${dueDateText}</p>
+            </div>
+        `;
+        taskContainer.appendChild(taskElement);
+    }
 
-async function syncWithNetwork() {
-    try {
-        const response = await fetch(`${API_URL}/tasks`);
-        if (!response.ok) throw new Error('Network request failed');
+    // --- Task Display & Event Handling ---
+    async function displayTasks() {
+        const taskContainer = document.querySelector('#tasks-view main');
+        if (!taskContainer || !db) return;
+        taskContainer.innerHTML = '';
+        const transaction = db.transaction(['tasks'], 'readonly');
+        const store = transaction.objectStore('tasks');
+        const request = store.getAll();
+        request.onsuccess = (event) => {
+            const tasks = event.target.result;
+            tasks.sort((a, b) => (a.status === 'done') - (b.status === 'done'));
+            tasks.forEach(renderTask);
+            const taskElements = document.querySelectorAll('#tasks-view main > div[data-id]');
+            taskElements.forEach(taskElement => {
+                const checkbox = taskElement.querySelector('.task-checkbox');
+                const taskId = taskElement.getAttribute('data-id');
+                if (checkbox && taskId) {
+                    checkbox.addEventListener('change', (e) => {
+                        const isCompleted = e.target.checked;
+                        const numericTaskId = parseInt(taskId, 10);
+                        if (!isNaN(numericTaskId)) {
+                            updateTaskStatus(numericTaskId, isCompleted);
+                        }
+                        const titleElement = taskElement.querySelector('p.text-white');
+                        if (titleElement) {
+                            titleElement.classList.toggle('line-through', isCompleted);
+                        }
+                    });
+                }
+            });
+        };
+        request.onerror = (event) => console.error('Error fetching tasks from IDB:', event.target.error);
+    }
 
-        const tasks = await response.json();
+    // --- Task Actions ---
+    function setupTaskCreation() {
+        if (addTaskButton && addTaskModal && cancelTaskButton && taskForm) {
+            addTaskButton.addEventListener('click', () => addTaskModal.classList.remove('hidden'));
+            cancelTaskButton.addEventListener('click', () => addTaskModal.classList.add('hidden'));
+            taskForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const task = {
+                    title: taskTitleInput.value,
+                    content: taskContentInput.value || '',
+                    dueDate: taskDueDateInput.value,
+                    status: 'todo'
+                };
+
+                // Add to the main tasks store for immediate UI update
+                const tasksTx = db.transaction(['tasks'], 'readwrite');
+                const tasksStore = tasksTx.objectStore('tasks');
+                const addRequest = tasksStore.add(task);
+
+                addRequest.onsuccess = () => {
+                    // Also add to the outbox for background syncing
+                    const outboxTx = db.transaction(['tasks_outbox'], 'readwrite');
+                    outboxTx.objectStore('tasks_outbox').add(task);
+                    outboxTx.oncomplete = () => {
+                        // Sync in the background, don't wait for it
+                        syncOutbox();
+                    }
+
+                    // Refresh the UI from the database, which now contains the new task
+                    displayTasks();
+                };
+
+                // Reset form and hide modal immediately
+                taskForm.reset();
+                addTaskModal.classList.add('hidden');
+            });
+        }
+    }
+
+    async function updateTaskStatus(taskId, isCompleted) {
+        const newStatus = isCompleted ? 'done' : 'todo';
+        if (!db) return;
         const tx = db.transaction(['tasks'], 'readwrite');
         const store = tx.objectStore('tasks');
-        store.clear();
-        tasks.forEach(task => store.add(task));
-
-        tx.oncomplete = displayTasks;
-
-    } catch (error) {
-        console.log('App is likely offline. Could not sync with network.');
-    }
-}
-
-// --- Focus Mode Logic ---
-let timerInterval = null;
-let totalSeconds = 25 * 60;
-let isPaused = true;
-
-const timerDisplay = document.getElementById('timer-display');
-const pauseButton = document.getElementById('pause-button');
-const stopButton = document.getElementById('stop-button');
-const progressCircle = document.getElementById('progress-circle');
-const circleLength = 2 * Math.PI * 45; // 2 * pi * radius
-
-function updateTimerDisplay() {
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-
-    const progress = totalSeconds / (25 * 60);
-    const dashoffset = circleLength * (1 - progress);
-    progressCircle.style.strokeDashoffset = dashoffset;
-}
-
-function startTimer() {
-    if (isPaused) {
-        isPaused = false;
-        pauseButton.textContent = 'Pause';
-        timerInterval = setInterval(() => {
-            if (totalSeconds > 0) {
-                totalSeconds--;
-                updateTimerDisplay();
-            } else {
-                stopTimer();
-                // Optional: Auto-start break or notify user
+        const getReq = store.get(taskId);
+        getReq.onsuccess = () => {
+            const task = getReq.result;
+            if (task) {
+                task.status = newStatus;
+                store.put(task);
             }
-        }, 1000);
+        };
+        tx.oncomplete = () => {
+            fetch(`${API_URL}/tasks/${taskId}/status`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus })
+            }).catch(err => console.error('Failed to sync status update:', err));
+        };
     }
-}
 
-function pauseTimer() {
-    isPaused = true;
-    pauseButton.textContent = 'Start';
-    clearInterval(timerInterval);
-}
+    // --- Syncing Logic ---
+    async function syncOutbox() {
+        if (!db) return Promise.resolve();
+        const outboxTx = db.transaction('tasks_outbox', 'readonly');
+        const outboxStore = outboxTx.objectStore('tasks_outbox');
+        const getReq = outboxStore.getAll(); // More efficient to get all at once
 
-function stopTimer() {
-    isPaused = true;
-    clearInterval(timerInterval);
-    totalSeconds = 25 * 60;
-    updateTimerDisplay();
-    pauseButton.textContent = 'Start';
-}
-
-function setupFocusMode() {
-    updateTimerDisplay(); // Initial display
-    const soundButton = document.querySelector('.flex.items-center.gap-4.mt-12.text-white');
-    if(soundButton) {
-        soundButton.addEventListener('click', () => {
-            console.log('Sound selection feature not yet implemented.');
+        return new Promise(resolve => {
+            getReq.onsuccess = async (event) => {
+                const outboxTasks = event.target.result;
+                if (outboxTasks.length === 0) {
+                    resolve();
+                    return;
+                }
+                try {
+                    const response = await fetch(`${API_URL}/tasks/sync`, { // Assuming a bulk endpoint
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(outboxTasks),
+                    });
+                    if (response.ok) {
+                        const deleteTx = db.transaction('tasks_outbox', 'readwrite');
+                        deleteTx.objectStore('tasks_outbox').clear();
+                        deleteTx.oncomplete = () => syncWithNetwork().then(resolve);
+                    } else {
+                        resolve(); // Resolve even if sync fails to not block UI
+                    }
+                } catch (error) {
+                    console.error('Network error during outbox sync.', error);
+                    resolve();
+                }
+            };
+            getReq.onerror = () => resolve();
         });
     }
 
-    pauseButton.addEventListener('click', () => {
-        if (isPaused) {
-            startTimer();
-        } else {
-            pauseTimer();
-        }
-    });
-    stopButton.addEventListener('click', stopTimer);
-}
-
-
-// --- View Switching ---
-function setupViewSwitcher() {
-    const navLinks = document.querySelectorAll('footer a');
-    const views = document.querySelectorAll('.view');
-
-    function updateNavStyles(activeLink) {
-        // Reset all links to inactive state
-        navLinks.forEach(nav => {
-            nav.classList.remove('text-white');
-            nav.classList.add('text-[#AD93C8]');
-            const iconWrapper = nav.querySelector('.nav-icon-wrapper');
-            const icon = nav.querySelector('.material-symbols-outlined');
-            const label = nav.querySelector('p');
-
-            iconWrapper.classList.remove('bg-[#9643ea]', 'rounded-full', 'p-2');
-            icon.classList.remove('text-white');
-            label.classList.remove('font-bold');
-            if (!label.classList.contains('font-medium')) {
-                 label.classList.add('font-medium');
-            }
-        });
-
-        // Get elements for the active link
-        const viewName = activeLink.getAttribute('data-view');
-        const activeIconWrapper = activeLink.querySelector('.nav-icon-wrapper');
-        const activeIcon = activeLink.querySelector('.material-symbols-outlined');
-        const activeLabel = activeLink.querySelector('p');
-
-        // Apply active styles
-        if (viewName === 'focus') {
-            activeLink.classList.remove('text-white');
-            activeLink.classList.add('text-[#AD93C8]');
-            activeIconWrapper.classList.add('bg-[#9643ea]', 'rounded-full', 'p-2');
-            activeIcon.classList.add('text-white');
-            activeLabel.classList.add('font-bold');
-            activeLabel.classList.remove('font-medium');
-        } else {
-            activeLink.classList.add('text-white');
-            activeLink.classList.remove('text-[#AD93C8]');
+    async function syncWithNetwork() {
+        try {
+            const response = await fetch(`${API_URL}/tasks`);
+            if (!response.ok) throw new Error('Network request failed');
+            const tasks = await response.json();
+            const tx = db.transaction(['tasks'], 'readwrite');
+            const store = tx.objectStore('tasks');
+            store.clear();
+            tasks.forEach(task => store.add(task));
+            return new Promise(resolve => {
+                tx.oncomplete = () => resolve();
+            });
+        } catch (error) {
+            console.log('App is likely offline. Could not sync with network.');
+            return Promise.resolve();
         }
     }
 
-    navLinks.forEach(link => {
-        link.addEventListener('click', (event) => {
-            event.preventDefault();
-            const viewName = link.getAttribute('data-view');
-            const targetView = document.getElementById(`${viewName}-view`);
+    // --- Focus Mode Logic ---
+    function setupFocusMode() {
+        const timerDisplay = document.getElementById('timer-display');
+        const pauseButton = document.getElementById('pause-button');
+        const stopButton = document.getElementById('stop-button');
+        const progressCircle = document.getElementById('progress-circle');
+        if(!timerDisplay || !pauseButton || !stopButton || !progressCircle) return;
 
-            if (targetView) {
-                views.forEach(view => view.classList.remove('active'));
-                targetView.classList.add('active');
-                updateNavStyles(link);
-            } else {
-                // Fallback for unimplemented views
-                views.forEach(view => view.classList.remove('active'));
-                document.getElementById('tasks-view').classList.add('active');
-                updateNavStyles(document.querySelector('a[data-view="tasks"]'));
+        const circleLength = 2 * Math.PI * 45;
+        let timerInterval = null;
+        let totalSeconds = 25 * 60;
+        let isPaused = true;
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            const progress = totalSeconds / (25 * 60);
+            progressCircle.style.strokeDashoffset = circleLength * (1 - progress);
+        }
+
+        function startTimer() {
+            if (isPaused) {
+                isPaused = false;
+                pauseButton.textContent = 'Pause';
+                timerInterval = setInterval(() => {
+                    if (totalSeconds > 0) {
+                        totalSeconds--;
+                        updateTimerDisplay();
+                    } else {
+                        stopTimer();
+                    }
+                }, 1000);
             }
+        }
+
+        function pauseTimer() {
+            isPaused = true;
+            pauseButton.textContent = 'Start';
+            clearInterval(timerInterval);
+        }
+
+        function stopTimer() {
+            isPaused = true;
+            clearInterval(timerInterval);
+            totalSeconds = 25 * 60;
+            updateTimerDisplay();
+            pauseButton.textContent = 'Start';
+        }
+
+        updateTimerDisplay();
+        pauseButton.addEventListener('click', () => isPaused ? startTimer() : pauseTimer());
+        stopButton.addEventListener('click', stopTimer);
+    }
+
+    // --- View Switching ---
+    function setupViewSwitcher() {
+        const navLinks = document.querySelectorAll('nav a');
+        const views = document.querySelectorAll('.view');
+        function updateNavStyles(activeLink) {
+            if (!activeLink) return;
+            navLinks.forEach(nav => {
+                nav.classList.remove('text-white', 'bg-[#9643ea]/20', 'rounded-full');
+                nav.classList.add('text-[#ad93c8]');
+                const label = nav.querySelector('p');
+                if (label) {
+                    label.classList.remove('font-bold');
+                    label.classList.add('font-medium');
+                }
+            });
+            activeLink.classList.add('text-white', 'bg-[#9643ea]/20', 'rounded-full');
+            activeLink.classList.remove('text-[#ad93c8]');
+            const activeLabel = activeLink.querySelector('p');
+            if (activeLabel) {
+                activeLabel.classList.add('font-bold');
+                activeLabel.classList.remove('font-medium');
+            }
+        }
+        navLinks.forEach(link => {
+            link.addEventListener('click', (event) => {
+                event.preventDefault();
+                const viewName = link.getAttribute('data-view');
+                const targetView = document.getElementById(`${viewName}-view`);
+                if (targetView) {
+                    views.forEach(view => view.classList.remove('active'));
+                    targetView.classList.add('active');
+                    updateNavStyles(link);
+                    if (viewName === 'focus') {
+                        setupFocusMode();
+                    }
+                }
+            });
         });
-    });
-
-    // Set initial state
-    const initialActiveView = document.querySelector('.view.active');
-    let initialActiveLink;
-    if (initialActiveView) {
-        const initialViewId = initialActiveView.id; // e.g., "tasks-view"
-        const initialViewName = initialViewId.replace('-view', '');
-        initialActiveLink = document.querySelector(`a[data-view="${initialViewName}"]`);
-    } else {
-        // Fallback if no view is active by default
-        initialActiveLink = document.querySelector('a[data-view="tasks"]');
-        document.getElementById('tasks-view').classList.add('active');
+        const initialActiveView = document.querySelector('.view.active');
+        if (initialActiveView) {
+            const initialViewName = initialActiveView.id.replace('-view', '');
+            const initialActiveLink = document.querySelector(`nav a[data-view="${initialViewName}"]`);
+            updateNavStyles(initialActiveLink);
+        }
     }
-    if (initialActiveLink) {
-        updateNavStyles(initialActiveLink);
+
+    // --- Main Execution ---
+    async function main() {
+        await openDatabase();
+        await syncWithNetwork();
+        await displayTasks();
+        setupViewSwitcher();
+        setupFocusMode(); // Initial setup for focus view if it's active
+        setupTaskCreation();
     }
-}
 
+    main();
+});
 
-// --- Main ---
-async function main() {
-    await openDatabase();
-    await displayTasks();
-    await syncOutbox();
-    await syncWithNetwork();
-    setupViewSwitcher();
-    setupFocusMode();
-}
-
-main();
-
-// Service Worker
+// Service Worker (kept outside DOMContentLoaded)
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js')

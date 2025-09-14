@@ -12,48 +12,79 @@
         body { min-height: max(884px, 100dvh); }
         .view { display: none; }
         .view.active { display: block; }
-        /* A little extra style for the old task board to fit in the new design */
-        #task-board {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 1.5rem;
-            color: white;
+        :root {
+            --checkbox-tick-svg: url('data:image/svg+xml,%3csvg viewBox=%270 0 16 16%27 fill=%27rgb(255,255,255)%27 xmlns=%27http://www.w3.org/2000/svg%27%3e%3cpath d=%27M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z%27/%3e%3c/svg%3e');
         }
-        .task-column { background-color: #1E1926; padding: 1rem; border-radius: 8px; }
-        .task-card { background-color: #2a2135; padding: 1rem; border-radius: 4px; }
-        #new-task-form { background-color: #1E1926; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; color: white;}
+        .material-symbols-outlined {
+            font-variation-settings:
+            'FILL' 1,
+            'wght' 400,
+            'GRAD' 0,
+            'opsz' 24
+        }
     </style>
 </head>
-<body class="bg-[#100C14]">
-    <div class="relative flex h-auto min-h-screen w-full flex-col bg-[#100C14] dark justify-between group/design-root overflow-x-hidden" style='font-family: Inter, "Noto Sans", sans-serif;'>
+<body class="bg-gray-950">
+    <div class="relative flex h-auto min-h-screen w-full flex-col bg-[#120B1A] dark justify-between group/design-root overflow-x-hidden" style='font-family: Inter, "Noto Sans", sans-serif;'>
         <div class="flex-grow">
             <!-- Tasks View -->
-            <div id="tasks-view" class="view active p-4">
-                <header>
-                    <h1 class="text-white text-3xl font-bold mb-4">Tasks</h1>
+            <div id="tasks-view" class="view active">
+                <header class="flex items-center p-4 justify-between sticky top-0 bg-[#120B1A]/80 backdrop-blur-sm z-10">
+                    <button class="text-white flex size-10 shrink-0 items-center justify-center rounded-full">
+                        <span class="material-symbols-outlined text-2xl">menu</span>
+                    </button>
+                    <h1 class="text-white text-xl font-bold leading-tight tracking-tight">Tasks</h1>
+                    <button class="text-white flex size-10 shrink-0 items-center justify-center rounded-full bg-[#9643ea]">
+                        <span class="material-symbols-outlined text-2xl">add</span>
+                    </button>
                 </header>
-                <div id="new-task-form">
-                    <form id="task-form">
-                        <input type="text" id="task-title" placeholder="Task title" required class="w-full bg-[#2a2135] border-none rounded-md mb-2">
-                        <textarea id="task-content" placeholder="Task details" class="w-full bg-[#2a2135] border-none rounded-md mb-2"></textarea>
-                        <input type="date" id="task-due-date" class="w-full bg-[#2a2135] border-none rounded-md mb-2 text-gray-400">
-                        <button type="submit" class="w-full bg-[#9643ea] text-white font-bold py-2 px-4 rounded-md">Add Task</button>
-                    </form>
-                </div>
-                <div id="task-board">
-                    <div class="task-column" id="todo">
-                        <h2>To Do</h2>
-                        <div class="tasks-container" id="todo-tasks"></div>
+                <main class="flex-grow px-4 pb-4 space-y-3">
+                    <div class="flex items-center gap-4 bg-[#1C1326] px-4 min-h-[72px] py-3 rounded-2xl">
+                        <div class="flex size-7 items-center justify-center">
+                            <input class="h-6 w-6 rounded-full border-[#4d3465] border-2 bg-transparent text-[#9643ea] checked:bg-[#9643ea] checked:border-[#9643ea] checked:bg-[image:--checkbox-tick-svg] focus:ring-0 focus:ring-offset-0 focus:border-[#4d3465] focus:outline-none" type="checkbox"/>
+                        </div>
+                        <div class="flex flex-col justify-center">
+                            <p class="text-white text-base font-medium leading-normal">Review Chapter 3</p>
+                            <p class="text-[#ad93c8] text-sm font-normal leading-normal">Due Today</p>
+                        </div>
                     </div>
-                    <div class="task-column" id="inprogress">
-                        <h2>In Progress</h2>
-                        <div class="tasks-container" id="inprogress-tasks"></div>
+                    <div class="flex items-center gap-4 bg-[#1C1326] px-4 min-h-[72px] py-3 rounded-2xl">
+                        <div class="flex size-7 items-center justify-center">
+                            <input class="h-6 w-6 rounded-full border-[#4d3465] border-2 bg-transparent text-[#9643ea] checked:bg-[#9643ea] checked:border-[#9643ea] checked:bg-[image:--checkbox-tick-svg] focus:ring-0 focus:ring-offset-0 focus:border-[#4d3465] focus:outline-none" type="checkbox"/>
+                        </div>
+                        <div class="flex flex-col justify-center">
+                            <p class="text-white text-base font-medium leading-normal">Outline Essay</p>
+                            <p class="text-[#ad93c8] text-sm font-normal leading-normal">Due Tomorrow</p>
+                        </div>
                     </div>
-                    <div class="task-column" id="done">
-                        <h2>Done</h2>
-                        <div class="tasks-container" id="done-tasks"></div>
+                    <div class="flex items-center gap-4 bg-[#1C1326] px-4 min-h-[72px] py-3 rounded-2xl">
+                        <div class="flex size-7 items-center justify-center">
+                            <input checked="" class="h-6 w-6 rounded-full border-[#4d3465] border-2 bg-transparent text-[#9643ea] checked:bg-[#9643ea] checked:border-[#9643ea] checked:bg-[image:--checkbox-tick-svg] focus:ring-0 focus:ring-offset-0 focus:border-[#4d3465] focus:outline-none" type="checkbox"/>
+                        </div>
+                        <div class="flex flex-col justify-center">
+                            <p class="text-white text-base font-medium leading-normal line-through">Practice Problems</p>
+                            <p class="text-[#ad93c8] text-sm font-normal leading-normal">Due in 2 Days</p>
+                        </div>
                     </div>
-                </div>
+                    <div class="flex items-center gap-4 bg-[#1C1326] px-4 min-h-[72px] py-3 rounded-2xl">
+                        <div class="flex size-7 items-center justify-center">
+                            <input class="h-6 w-6 rounded-full border-[#4d3465] border-2 bg-transparent text-[#9643ea] checked:bg-[#9643ea] checked:border-[#9643ea] checked:bg-[image:--checkbox-tick-svg] focus:ring-0 focus:ring-offset-0 focus:border-[#4d3465] focus:outline-none" type="checkbox"/>
+                        </div>
+                        <div class="flex flex-col justify-center">
+                            <p class="text-white text-base font-medium leading-normal">Read Article</p>
+                            <p class="text-[#ad93c8] text-sm font-normal leading-normal">Due in 3 Days</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4 bg-[#1C1326] px-4 min-h-[72px] py-3 rounded-2xl">
+                        <div class="flex size-7 items-center justify-center">
+                            <input class="h-6 w-6 rounded-full border-[#4d3465] border-2 bg-transparent text-[#9643ea] checked:bg-[#9643ea] checked:border-[#9643ea] checked:bg-[image:--checkbox-tick-svg] focus:ring-0 focus:ring-offset-0 focus:border-[#4d3465] focus:outline-none" type="checkbox"/>
+                        </div>
+                        <div class="flex flex-col justify-center">
+                            <p class="text-white text-base font-medium leading-normal">Prepare Presentation</p>
+                            <p class="text-[#ad93c8] text-sm font-normal leading-normal">Due in 4 Days</p>
+                        </div>
+                    </div>
+                </main>
             </div>
 
             <!-- Focus View -->
@@ -90,41 +121,48 @@
             </div>
         </div>
 
-        <footer class="sticky bottom-0">
-            <div class="flex justify-around border-t border-[#362447] bg-[#1a1122] py-2">
-                <a class="flex flex-col items-center justify-end gap-1 text-[#AD93C8]" href="#" data-view="goals">
-                    <div class="nav-icon-wrapper">
-                        <span class="material-symbols-outlined text-2xl">emoji_events</span>
-                    </div>
-                    <p class="text-xs font-medium tracking-[0.015em]">Goals</p>
+        <nav class="sticky bottom-0 bg-[#1C1326]/80 backdrop-blur-sm">
+            <div class="flex justify-around border-t border-[#362447] px-2 py-2">
+                <a class="flex flex-1 flex-col items-center justify-end gap-1.5 p-2 text-[#ad93c8]" href="#" data-view="goals">
+                    <span class="material-symbols-outlined !text-2xl">emoji_events</span>
+                    <p class="text-xs font-medium leading-tight">Goals</p>
                 </a>
-                <a class="flex flex-col items-center justify-end gap-1 text-white" href="#" data-view="tasks">
-                    <div class="nav-icon-wrapper">
-                        <span class="material-symbols-outlined text-2xl">list_alt</span>
-                    </div>
-                    <p class="text-xs font-medium tracking-[0.015em]">Tasks</p>
+                <a class="flex flex-1 flex-col items-center justify-end gap-1.5 rounded-full bg-[#9643ea]/20 p-2 text-white" href="#" data-view="tasks">
+                    <span class="material-symbols-outlined !text-2xl">task_alt</span>
+                    <p class="text-xs font-bold leading-tight">Tasks</p>
                 </a>
-                <a class="flex flex-col items-center justify-end gap-1 text-[#AD93C8]" href="#" data-view="planner">
-                    <div class="nav-icon-wrapper">
-                        <span class="material-symbols-outlined text-2xl">calendar_today</span>
-                    </div>
-                    <p class="text-xs font-medium tracking-[0.015em]">Planner</p>
+                <a class="flex flex-1 flex-col items-center justify-end gap-1.5 p-2 text-[#ad93c8]" href="#" data-view="planner">
+                    <span class="material-symbols-outlined !text-2xl">calendar_month</span>
+                    <p class="text-xs font-medium leading-tight">Planner</p>
                 </a>
-                <a class="flex flex-col items-center justify-end gap-1 text-[#AD93C8]" href="#" data-view="progress">
-                    <div class="nav-icon-wrapper">
-                        <span class="material-symbols-outlined text-2xl">timeline</span>
-                    </div>
-                    <p class="text-xs font-medium tracking-[0.015em]">Progress</p>
+                <a class="flex flex-1 flex-col items-center justify-end gap-1.5 p-2 text-[#ad93c8]" href="#" data-view="progress">
+                    <span class="material-symbols-outlined !text-2xl">monitoring</span>
+                    <p class="text-xs font-medium leading-tight">Progress</p>
                 </a>
-                <a class="flex flex-col items-center justify-end gap-1 text-[#AD93C8]" href="#" data-view="focus">
-                    <div class="nav-icon-wrapper">
-                        <span class="material-symbols-outlined text-2xl">psychology</span>
-                    </div>
-                    <p class="text-xs font-medium tracking-[0.015em]">Focus</p>
+                <a class="flex flex-1 flex-col items-center justify-end gap-1.5 p-2 text-[#ad93c8]" href="#" data-view="focus">
+                    <span class="material-symbols-outlined !text-2xl">hourglass_top</span>
+                    <p class="text-xs font-medium leading-tight">Focus</p>
                 </a>
             </div>
-        </footer>
+            <div class="h-3 bg-transparent"></div>
+        </nav>
     </div>
     <script src="script.js"></script>
+
+    <!-- Add Task Modal -->
+    <div id="add-task-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-20">
+        <div id="new-task-form" class="bg-[#1E1926] p-6 rounded-lg w-full max-w-md m-4">
+            <h2 class="text-white text-2xl font-bold mb-4">Add New Task</h2>
+            <form id="task-form">
+                <input type="text" id="task-title" placeholder="Task title" required class="w-full bg-[#2a2135] border-none rounded-md mb-3 text-white placeholder-gray-400">
+                <textarea id="task-content" placeholder="Task details" class="w-full bg-[#2a2135] border-none rounded-md mb-3 text-white placeholder-gray-400"></textarea>
+                <input type="date" id="task-due-date" class="w-full bg-[#2a2135] border-none rounded-md mb-4 text-gray-400">
+                <div class="flex gap-4">
+                    <button type="button" id="cancel-task-button" class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md">Cancel</button>
+                    <button type="submit" class="flex-1 bg-[#9643ea] hover:bg-[#8038c5] text-white font-bold py-2 px-4 rounded-md">Add Task</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </body>
 </html>
