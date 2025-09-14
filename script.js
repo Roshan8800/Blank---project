@@ -256,32 +256,77 @@ function setupViewSwitcher() {
     const navLinks = document.querySelectorAll('footer a');
     const views = document.querySelectorAll('.view');
 
+    function updateNavStyles(activeLink) {
+        // Reset all links to inactive state
+        navLinks.forEach(nav => {
+            nav.classList.remove('text-white');
+            nav.classList.add('text-[#AD93C8]');
+            const iconWrapper = nav.querySelector('.nav-icon-wrapper');
+            const icon = nav.querySelector('.material-symbols-outlined');
+            const label = nav.querySelector('p');
+
+            iconWrapper.classList.remove('bg-[#9643ea]', 'rounded-full', 'p-2');
+            icon.classList.remove('text-white');
+            label.classList.remove('font-bold');
+            if (!label.classList.contains('font-medium')) {
+                 label.classList.add('font-medium');
+            }
+        });
+
+        // Get elements for the active link
+        const viewName = activeLink.getAttribute('data-view');
+        const activeIconWrapper = activeLink.querySelector('.nav-icon-wrapper');
+        const activeIcon = activeLink.querySelector('.material-symbols-outlined');
+        const activeLabel = activeLink.querySelector('p');
+
+        // Apply active styles
+        if (viewName === 'focus') {
+            activeLink.classList.remove('text-white');
+            activeLink.classList.add('text-[#AD93C8]');
+            activeIconWrapper.classList.add('bg-[#9643ea]', 'rounded-full', 'p-2');
+            activeIcon.classList.add('text-white');
+            activeLabel.classList.add('font-bold');
+            activeLabel.classList.remove('font-medium');
+        } else {
+            activeLink.classList.add('text-white');
+            activeLink.classList.remove('text-[#AD93C8]');
+        }
+    }
+
     navLinks.forEach(link => {
         link.addEventListener('click', (event) => {
             event.preventDefault();
             const viewName = link.getAttribute('data-view');
+            const targetView = document.getElementById(`${viewName}-view`);
 
-            views.forEach(view => {
-                view.classList.remove('active');
-            });
-
-            navLinks.forEach(nav => {
-                nav.classList.remove('text-white');
-                nav.classList.add('text-[#AD93C8]');
-            });
-
-            const activeView = document.getElementById(`${viewName}-view`);
-            if (activeView) {
-                activeView.classList.add('active');
-                link.classList.add('text-white');
-                link.classList.remove('text-[#AD93C8]');
+            if (targetView) {
+                views.forEach(view => view.classList.remove('active'));
+                targetView.classList.add('active');
+                updateNavStyles(link);
             } else {
                 // Fallback for unimplemented views
+                views.forEach(view => view.classList.remove('active'));
                 document.getElementById('tasks-view').classList.add('active');
-                document.querySelector('a[data-view="tasks"]').classList.add('text-white');
+                updateNavStyles(document.querySelector('a[data-view="tasks"]'));
             }
         });
     });
+
+    // Set initial state
+    const initialActiveView = document.querySelector('.view.active');
+    let initialActiveLink;
+    if (initialActiveView) {
+        const initialViewId = initialActiveView.id; // e.g., "tasks-view"
+        const initialViewName = initialViewId.replace('-view', '');
+        initialActiveLink = document.querySelector(`a[data-view="${initialViewName}"]`);
+    } else {
+        // Fallback if no view is active by default
+        initialActiveLink = document.querySelector('a[data-view="tasks"]');
+        document.getElementById('tasks-view').classList.add('active');
+    }
+    if (initialActiveLink) {
+        updateNavStyles(initialActiveLink);
+    }
 }
 
 
