@@ -270,60 +270,14 @@ document.addEventListener('DOMContentLoaded', () => {
         stopButton.addEventListener('click', stopTimer);
     }
 
-    // --- View Switching ---
-    function setupViewSwitcher() {
-        const navLinks = document.querySelectorAll('nav a');
-        const views = document.querySelectorAll('.view');
-        function updateNavStyles(activeLink) {
-            if (!activeLink) return;
-            navLinks.forEach(nav => {
-                nav.classList.remove('text-white', 'bg-[#9643ea]/20', 'rounded-full');
-                nav.classList.add('text-[#ad93c8]');
-                const label = nav.querySelector('p');
-                if (label) {
-                    label.classList.remove('font-bold');
-                    label.classList.add('font-medium');
-                }
-            });
-            activeLink.classList.add('text-white', 'bg-[#9643ea]/20', 'rounded-full');
-            activeLink.classList.remove('text-[#ad93c8]');
-            const activeLabel = activeLink.querySelector('p');
-            if (activeLabel) {
-                activeLabel.classList.add('font-bold');
-                activeLabel.classList.remove('font-medium');
-            }
-        }
-        navLinks.forEach(link => {
-            link.addEventListener('click', (event) => {
-                event.preventDefault();
-                const viewName = link.getAttribute('data-view');
-                const targetView = document.getElementById(`${viewName}-view`);
-                if (targetView) {
-                    views.forEach(view => view.classList.remove('active'));
-                    targetView.classList.add('active');
-                    updateNavStyles(link);
-                    if (viewName === 'focus') {
-                        setupFocusMode();
-                    }
-                }
-            });
-        });
-        const initialActiveView = document.querySelector('.view.active');
-        if (initialActiveView) {
-            const initialViewName = initialActiveView.id.replace('-view', '');
-            const initialActiveLink = document.querySelector(`nav a[data-view="${initialViewName}"]`);
-            updateNavStyles(initialActiveLink);
-        }
-    }
-
     // --- Main Execution ---
     async function main() {
         await openDatabase();
         await syncWithNetwork();
         await displayTasks();
-        setupViewSwitcher();
-        setupFocusMode(); // Initial setup for focus view if it's active
-        setupTaskCreation();
+        // setupViewSwitcher is no longer needed as navigation is handled by standard href links.
+        setupFocusMode(); // This will only run if focus elements are on the page
+        setupTaskCreation(); // This will only run if task elements are on the page
     }
 
     main();

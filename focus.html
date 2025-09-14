@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Studyflow - Tasks</title>
+    <title>Studyflow - Focus</title>
     <link crossorigin="" href="https://fonts.gstatic.com/" rel="preconnect"/>
     <link as="style" href="https://fonts.googleapis.com/css2?display=swap&amp;family=Inter%3Awght%40400%3B500%3B700%3B900&amp;family=Noto+Sans%3Awght%40400%3B500%3B700%3B900" onload="this.rel='stylesheet'" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
@@ -27,19 +27,36 @@
 <body class="bg-gray-950">
     <div class="relative flex h-auto min-h-screen w-full flex-col bg-[#120B1A] dark justify-between group/design-root overflow-x-hidden" style='font-family: Inter, "Noto Sans", sans-serif;'>
         <div class="flex-grow">
-            <!-- Tasks View -->
-            <div id="tasks-view" class="view active">
-                <header class="flex items-center p-4 justify-between sticky top-0 bg-[#120B1A]/80 backdrop-blur-sm z-10">
-                    <button class="text-white flex size-10 shrink-0 items-center justify-center rounded-full">
-                        <span class="material-symbols-outlined text-2xl">menu</span>
+            <!-- Focus View -->
+            <div id="focus-view" class="view active">
+                <header class="flex items-center p-4 justify-between">
+                    <button class="text-white">
+                        <span class="material-symbols-outlined text-3xl">close</span>
                     </button>
-                    <h1 class="text-white text-xl font-bold leading-tight tracking-tight">Tasks</h1>
-                    <button class="text-white flex size-10 shrink-0 items-center justify-center rounded-full bg-[#9643ea]">
-                        <span class="material-symbols-outlined text-2xl">add</span>
+                    <button class="text-white">
+                        <span class="material-symbols-outlined text-3xl">settings</span>
                     </button>
                 </header>
-                <main class="flex-grow px-4 pb-4 space-y-3">
-                    <!-- Tasks will be rendered here by script.js -->
+                <main class="flex flex-col items-center px-4 py-16">
+                    <div class="relative w-64 h-64 flex items-center justify-center">
+                        <svg class="absolute inset-0" viewBox="0 0 100 100">
+                            <circle class="text-[#1E1926]" cx="50" cy="50" fill="transparent" r="45" stroke="currentColor" stroke-width="8"></circle>
+                            <circle id="progress-circle" class="text-[#9643ea]" cx="50" cy="50" fill="transparent" r="45" stroke="currentColor" stroke-dasharray="283" stroke-dashoffset="283" stroke-linecap="round" stroke-width="8" style="transform: rotate(-90deg); transform-origin: 50% 50%;"></circle>
+                        </svg>
+                        <div class="z-10 text-center">
+                            <h1 id="timer-display" class="text-white text-5xl font-bold leading-tight">25:00</h1>
+                            <p class="text-[#AD93C8] text-lg font-medium">Focus</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-4 mt-16">
+                        <button id="pause-button" class="flex w-36 h-12 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-[#1E1926] text-white text-lg font-bold leading-normal tracking-wide">Pause</button>
+                        <button id="stop-button" class="flex w-36 h-12 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-[#9643ea] text-white text-lg font-bold leading-normal tracking-wide">Stop</button>
+                    </div>
+                    <div class="flex items-center gap-4 mt-12 text-white">
+                        <button class="text-white"><span class="material-symbols-outlined text-3xl">music_note</span></button>
+                        <p class="text-lg">Rain Sounds</p>
+                        <button class="text-white"><span class="material-symbols-outlined text-3xl">chevron_right</span></button>
+                    </div>
                 </main>
             </div>
         </div>
@@ -50,9 +67,9 @@
                     <span class="material-symbols-outlined !text-2xl">emoji_events</span>
                     <p class="text-xs font-medium leading-tight">Goals</p>
                 </a>
-                <a class="flex flex-1 flex-col items-center justify-end gap-1.5 rounded-full bg-[#9643ea]/20 p-2 text-white" href="tasks.html">
+                <a class="flex flex-1 flex-col items-center justify-end gap-1.5 p-2 text-[#ad93c8]" href="tasks.html">
                     <span class="material-symbols-outlined !text-2xl">task_alt</span>
-                    <p class="text-xs font-bold leading-tight">Tasks</p>
+                    <p class="text-xs font-medium leading-tight">Tasks</p>
                 </a>
                 <a class="flex flex-1 flex-col items-center justify-end gap-1.5 p-2 text-[#ad93c8]" href="#">
                     <span class="material-symbols-outlined !text-2xl">calendar_month</span>
@@ -62,30 +79,14 @@
                     <span class="material-symbols-outlined !text-2xl">monitoring</span>
                     <p class="text-xs font-medium leading-tight">Progress</p>
                 </a>
-                <a class="flex flex-1 flex-col items-center justify-end gap-1.5 p-2 text-[#ad93c8]" href="focus.html">
+                <a class="flex flex-1 flex-col items-center justify-end gap-1.5 rounded-full bg-[#9643ea]/20 p-2 text-white" href="focus.html">
                     <span class="material-symbols-outlined !text-2xl">hourglass_top</span>
-                    <p class="text-xs font-medium leading-tight">Focus</p>
+                    <p class="text-xs font-bold leading-tight">Focus</p>
                 </a>
             </div>
             <div class="h-3 bg-transparent"></div>
         </nav>
     </div>
     <script src="script.js"></script>
-
-    <!-- Add Task Modal -->
-    <div id="add-task-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-20">
-        <div id="new-task-form" class="bg-[#1E1926] p-6 rounded-lg w-full max-w-md m-4">
-            <h2 class="text-white text-2xl font-bold mb-4">Add New Task</h2>
-            <form id="task-form">
-                <input type="text" id="task-title" placeholder="Task title" required class="w-full bg-[#2a2135] border-none rounded-md mb-3 text-white placeholder-gray-400">
-                <textarea id="task-content" placeholder="Task details" class="w-full bg-[#2a2135] border-none rounded-md mb-3 text-white placeholder-gray-400"></textarea>
-                <input type="date" id="task-due-date" class="w-full bg-[#2a2135] border-none rounded-md mb-4 text-gray-400">
-                <div class="flex gap-4">
-                    <button type="button" id="cancel-task-button" class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md">Cancel</button>
-                    <button type="submit" class="flex-1 bg-[#9643ea] hover:bg-[#8038c5] text-white font-bold py-2 px-4 rounded-md">Add Task</button>
-                </div>
-            </form>
-        </div>
-    </div>
 </body>
 </html>
