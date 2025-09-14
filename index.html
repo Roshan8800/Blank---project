@@ -3,39 +3,118 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Studyflow - Task Management</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Studyflow</title>
+    <link crossorigin="" href="https://fonts.gstatic.com/" rel="preconnect"/>
+    <link as="style" href="https://fonts.googleapis.com/css2?display=swap&amp;family=Inter%3Awght%40400%3B500%3B700%3B900&amp;family=Noto+Sans%3Awght%40400%3B500%3B700%3B900" onload="this.rel='stylesheet'" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <style>
+        body { min-height: max(884px, 100dvh); }
+        .view { display: none; }
+        .view.active { display: block; }
+        /* A little extra style for the old task board to fit in the new design */
+        #task-board {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            color: white;
+        }
+        .task-column { background-color: #1E1926; padding: 1rem; border-radius: 8px; }
+        .task-card { background-color: #2a2135; padding: 1rem; border-radius: 4px; }
+        #new-task-form { background-color: #1E1926; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; color: white;}
+    </style>
 </head>
-<body>
-    <header>
-        <h1>Studyflow</h1>
-    </header>
-    <main>
-        <div id="new-task-form">
-            <h2>Add New Task</h2>
-            <form id="task-form">
-                <input type="text" id="task-title" placeholder="Task title" required>
-                <textarea id="task-content" placeholder="Task details"></textarea>
-                <input type="date" id="task-due-date">
-                <button type="submit">Add Task</button>
-            </form>
+<body class="bg-[#100C14]">
+    <div class="relative flex h-auto min-h-screen w-full flex-col bg-[#100C14] dark justify-between group/design-root overflow-x-hidden" style='font-family: Inter, "Noto Sans", sans-serif;'>
+        <div class="flex-grow">
+            <!-- Tasks View -->
+            <div id="tasks-view" class="view active p-4">
+                <header>
+                    <h1 class="text-white text-3xl font-bold mb-4">Tasks</h1>
+                </header>
+                <div id="new-task-form">
+                    <form id="task-form">
+                        <input type="text" id="task-title" placeholder="Task title" required class="w-full bg-[#2a2135] border-none rounded-md mb-2">
+                        <textarea id="task-content" placeholder="Task details" class="w-full bg-[#2a2135] border-none rounded-md mb-2"></textarea>
+                        <input type="date" id="task-due-date" class="w-full bg-[#2a2135] border-none rounded-md mb-2 text-gray-400">
+                        <button type="submit" class="w-full bg-[#9643ea] text-white font-bold py-2 px-4 rounded-md">Add Task</button>
+                    </form>
+                </div>
+                <div id="task-board">
+                    <div class="task-column" id="todo">
+                        <h2>To Do</h2>
+                        <div class="tasks-container" id="todo-tasks"></div>
+                    </div>
+                    <div class="task-column" id="inprogress">
+                        <h2>In Progress</h2>
+                        <div class="tasks-container" id="inprogress-tasks"></div>
+                    </div>
+                    <div class="task-column" id="done">
+                        <h2>Done</h2>
+                        <div class="tasks-container" id="done-tasks"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Focus View -->
+            <div id="focus-view" class="view">
+                <header class="flex items-center p-4 justify-between">
+                    <button class="text-white">
+                        <span class="material-symbols-outlined text-3xl">close</span>
+                    </button>
+                    <button class="text-white">
+                        <span class="material-symbols-outlined text-3xl">settings</span>
+                    </button>
+                </header>
+                <main class="flex flex-col items-center px-4 py-16">
+                    <div class="relative w-64 h-64 flex items-center justify-center">
+                        <svg class="absolute inset-0" viewBox="0 0 100 100">
+                            <circle class="text-[#1E1926]" cx="50" cy="50" fill="transparent" r="45" stroke="currentColor" stroke-width="8"></circle>
+                            <circle id="progress-circle" class="text-[#9643ea]" cx="50" cy="50" fill="transparent" r="45" stroke="currentColor" stroke-dasharray="283" stroke-dashoffset="283" stroke-linecap="round" stroke-width="8" style="transform: rotate(-90deg); transform-origin: 50% 50%;"></circle>
+                        </svg>
+                        <div class="z-10 text-center">
+                            <h1 id="timer-display" class="text-white text-5xl font-bold leading-tight">25:00</h1>
+                            <p class="text-[#AD93C8] text-lg font-medium">Focus</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-4 mt-16">
+                        <button id="pause-button" class="flex w-36 h-12 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-[#1E1926] text-white text-lg font-bold leading-normal tracking-wide">Pause</button>
+                        <button id="stop-button" class="flex w-36 h-12 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-[#9643ea] text-white text-lg font-bold leading-normal tracking-wide">Stop</button>
+                    </div>
+                    <div class="flex items-center gap-4 mt-12 text-white">
+                        <button class="text-white"><span class="material-symbols-outlined text-3xl">music_note</span></button>
+                        <p class="text-lg">Rain Sounds</p>
+                        <button class="text-white"><span class="material-symbols-outlined text-3xl">chevron_right</span></button>
+                    </div>
+                </main>
+            </div>
         </div>
 
-        <div id="task-board">
-            <div class="task-column" id="todo">
-                <h2>To Do</h2>
-                <div class="tasks-container" id="todo-tasks"></div>
+        <footer class="sticky bottom-0">
+            <div class="flex justify-around border-t border-[#362447] bg-[#1a1122] py-2">
+                <a class="flex flex-col items-center justify-end gap-1 text-[#AD93C8]" href="#" data-view="goals">
+                    <span class="material-symbols-outlined text-2xl">emoji_events</span>
+                    <p class="text-xs font-medium tracking-[0.015em]">Goals</p>
+                </a>
+                <a class="flex flex-col items-center justify-end gap-1 text-white" href="#" data-view="tasks">
+                    <span class="material-symbols-outlined text-2xl">list_alt</span>
+                    <p class="text-xs font-medium tracking-[0.015em]">Tasks</p>
+                </a>
+                <a class="flex flex-col items-center justify-end gap-1 text-[#AD93C8]" href="#" data-view="planner">
+                    <span class="material-symbols-outlined text-2xl">calendar_today</span>
+                    <p class="text-xs font-medium tracking-[0.015em]">Planner</p>
+                </a>
+                <a class="flex flex-col items-center justify-end gap-1 text-[#AD93C8]" href="#" data-view="progress">
+                    <span class="material-symbols-outlined text-2xl">timeline</span>
+                    <p class="text-xs font-medium tracking-[0.015em]">Progress</p>
+                </a>
+                <a class="flex flex-col items-center justify-end gap-1 text-[#AD93C8]" href="#" data-view="focus">
+                    <span class="material-symbols-outlined text-2xl">psychology</span>
+                    <p class="text-xs font-medium tracking-[0.015em]">Focus</p>
+                </a>
             </div>
-            <div class="task-column" id="inprogress">
-                <h2>In Progress</h2>
-                <div class="tasks-container" id="inprogress-tasks"></div>
-            </div>
-            <div class="task-column" id="done">
-                <h2>Done</h2>
-                <div class="tasks-container" id="done-tasks"></div>
-            </div>
-        </div>
-    </main>
+        </footer>
+    </div>
     <script src="script.js"></script>
 </body>
 </html>

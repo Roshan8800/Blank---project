@@ -68,3 +68,18 @@ The frontend is a set of static files. To run it, you need a simple HTTP server.
     -   Refresh the page.
     -   The application will sync the offline-created task with the backend. You should see console logs indicating the sync is happening.
     -   The task you created offline will now be permanently saved and will appear just like any other task.
+
+## 5. Testing the Focus Mode
+
+1.  **Navigate between Views:**
+    -   Use the bottom navigation bar to switch between the "Tasks" view and the "Focus" view.
+
+2.  **Test the Timer:**
+    -   In the "Focus" view, the timer should display "25:00".
+    -   Click the "Start" button. The timer should begin counting down, and the purple progress circle should animate. The button's text should change to "Pause".
+    -   Click the "Pause" button. The timer should stop, and the button's text should change back to "Start".
+    -   Click the "Stop" button. The timer should reset to "25:00", and the progress circle should return to its initial state.
+
+3.  **Test Sound Placeholder:**
+    -   Click on the "Rain Sounds" text or the music note icon.
+    -   Open the browser's developer console (F12). You should see the message "Sound selection feature not yet implemented." logged.

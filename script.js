@@ -180,12 +180,119 @@ async function syncWithNetwork() {
     }
 }
 
+// --- Focus Mode Logic ---
+let timerInterval = null;
+let totalSeconds = 25 * 60;
+let isPaused = true;
+
+const timerDisplay = document.getElementById('timer-display');
+const pauseButton = document.getElementById('pause-button');
+const stopButton = document.getElementById('stop-button');
+const progressCircle = document.getElementById('progress-circle');
+const circleLength = 2 * Math.PI * 45; // 2 * pi * radius
+
+function updateTimerDisplay() {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+    const progress = totalSeconds / (25 * 60);
+    const dashoffset = circleLength * (1 - progress);
+    progressCircle.style.strokeDashoffset = dashoffset;
+}
+
+function startTimer() {
+    if (isPaused) {
+        isPaused = false;
+        pauseButton.textContent = 'Pause';
+        timerInterval = setInterval(() => {
+            if (totalSeconds > 0) {
+                totalSeconds--;
+                updateTimerDisplay();
+            } else {
+                stopTimer();
+                // Optional: Auto-start break or notify user
+            }
+        }, 1000);
+    }
+}
+
+function pauseTimer() {
+    isPaused = true;
+    pauseButton.textContent = 'Start';
+    clearInterval(timerInterval);
+}
+
+function stopTimer() {
+    isPaused = true;
+    clearInterval(timerInterval);
+    totalSeconds = 25 * 60;
+    updateTimerDisplay();
+    pauseButton.textContent = 'Start';
+}
+
+function setupFocusMode() {
+    updateTimerDisplay(); // Initial display
+    const soundButton = document.querySelector('.flex.items-center.gap-4.mt-12.text-white');
+    if(soundButton) {
+        soundButton.addEventListener('click', () => {
+            console.log('Sound selection feature not yet implemented.');
+        });
+    }
+
+    pauseButton.addEventListener('click', () => {
+        if (isPaused) {
+            startTimer();
+        } else {
+            pauseTimer();
+        }
+    });
+    stopButton.addEventListener('click', stopTimer);
+}
+
+
+// --- View Switching ---
+function setupViewSwitcher() {
+    const navLinks = document.querySelectorAll('footer a');
+    const views = document.querySelectorAll('.view');
+
+    navLinks.forEach(link => {
+        link.addEventListener('click', (event) => {
+            event.preventDefault();
+            const viewName = link.getAttribute('data-view');
+
+            views.forEach(view => {
+                view.classList.remove('active');
+            });
+
+            navLinks.forEach(nav => {
+                nav.classList.remove('text-white');
+                nav.classList.add('text-[#AD93C8]');
+            });
+
+            const activeView = document.getElementById(`${viewName}-view`);
+            if (activeView) {
+                activeView.classList.add('active');
+                link.classList.add('text-white');
+                link.classList.remove('text-[#AD93C8]');
+            } else {
+                // Fallback for unimplemented views
+                document.getElementById('tasks-view').classList.add('active');
+                document.querySelector('a[data-view="tasks"]').classList.add('text-white');
+            }
+        });
+    });
+}
+
+
 // --- Main ---
 async function main() {
     await openDatabase();
     await displayTasks();
     await syncOutbox();
     await syncWithNetwork();
+    setupViewSwitcher();
+    setupFocusMode();
 }
 
 main();
