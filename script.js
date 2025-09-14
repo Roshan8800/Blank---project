@@ -1,23 +1,27 @@
-const noteForm = document.getElementById('note-form');
-const noteTitleInput = document.getElementById('note-title');
-const noteContentInput = document.getElementById('note-content');
-const notesContainer = document.getElementById('notes-container');
+// DOM Elements
+const taskForm = document.getElementById('task-form');
+const taskTitleInput = document.getElementById('task-title');
+const taskContentInput = document.getElementById('task-content');
+const taskDueDateInput = document.getElementById('task-due-date');
+const todoTasksContainer = document.getElementById('todo-tasks');
+const inprogressTasksContainer = document.getElementById('inprogress-tasks');
+const doneTasksContainer = document.getElementById('done-tasks');
 
 const API_URL = 'http://localhost:8080';
-
 let db;
 
+// --- Database Functions ---
 function openDatabase() {
     return new Promise((resolve, reject) => {
-        const request = indexedDB.open('StudyflowDB', 2);
+        const request = indexedDB.open('StudyflowDB_Tasks', 1);
 
         request.onupgradeneeded = (event) => {
             db = event.target.result;
-            if (!db.objectStoreNames.contains('notes')) {
-                db.createObjectStore('notes', { keyPath: 'id' });
+            if (!db.objectStoreNames.contains('tasks')) {
+                db.createObjectStore('tasks', { keyPath: 'id' });
             }
-            if (!db.objectStoreNames.contains('outbox')) {
-                db.createObjectStore('outbox', { autoIncrement: true });
+            if (!db.objectStoreNames.contains('tasks_outbox')) {
+                db.createObjectStore('tasks_outbox', { autoIncrement: true });
             }
         };
 
@@ -25,200 +29,172 @@ function openDatabase() {
             db = event.target.result;
             resolve(db);
         };
-
-        request.onerror = (event) => {
-            console.error('Database error:', event.target.error);
-            reject(event.target.error);
-        };
+        request.onerror = (event) => reject(event.target.error);
     });
 }
 
-noteForm.addEventListener('submit', (event) => {
-    event.preventDefault();
-    addNote();
-});
-
-async function addNote() {
-    const title = noteTitleInput.value;
-    const content = noteContentInput.value;
-
-    if (title.trim() === '' || content.trim() === '') {
-        return;
-    }
-
-    const note = { title, content };
-
-    try {
-        const response = await fetch(`${API_URL}/notes`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(note),
-        });
-
-        if (response.ok) {
-            const newNote = await response.json();
-            const transaction = db.transaction(['notes'], 'readwrite');
-            const objectStore = transaction.objectStore('notes');
-            objectStore.add(newNote);
-            transaction.oncomplete = () => {
-                noteTitleInput.value = '';
-                noteContentInput.value = '';
-                displayNotes();
-            };
-        } else {
-            throw new Error('Request failed');
-        }
-    } catch (error) {
-        console.log('App is offline. Saving note to outbox.');
-        const transaction = db.transaction(['outbox'], 'readwrite');
-        const objectStore = transaction.objectStore('outbox');
-        objectStore.add(note);
-        transaction.oncomplete = () => {
-            // Optimistically render the note
-            renderNote({id: 'temp-' + new Date().getTime(), ...note});
-            noteTitleInput.value = '';
-            noteContentInput.value = '';
-        }
-    }
+// --- Task Rendering ---
+function renderTask(task) {
+    const taskCard = document.createElement('div');
+    taskCard.className = 'task-card';
+    taskCard.setAttribute('data-id', task.id);
+    taskCard.innerHTML = `
+        <h3>${task.title}</h3>
+        <p>${task.content}</p>
+        ${task.dueDate ? `<p class="due-date">Due: ${task.dueDate}</p>` : ''}
+        <select class="status-changer" onchange="updateTaskStatus(${task.id}, this.value)">
+            <option value="todo" ${task.status === 'todo' ? 'selected' : ''}>To Do</option>
+            <option value="inprogress" ${task.status === 'inprogress' ? 'selected' : ''}>In Progress</option>
+            <option value="done" ${task.status === 'done' ? 'selected' : ''}>Done</option>
+        </select>
+    `;
+    if (task.status === 'todo') todoTasksContainer.appendChild(taskCard);
+    else if (task.status === 'inprogress') inprogressTasksContainer.appendChild(taskCard);
+    else doneTasksContainer.appendChild(taskCard);
 }
 
-async function displayNotes() {
-    notesContainer.innerHTML = '';
-    const transaction = db.transaction(['notes'], 'readonly');
-    const objectStore = transaction.objectStore('notes');
-    const request = objectStore.getAll();
+async function displayTasks() {
+    todoTasksContainer.innerHTML = '';
+    inprogressTasksContainer.innerHTML = '';
+    doneTasksContainer.innerHTML = '';
+
+    const transaction = db.transaction(['tasks'], 'readonly');
+    const store = transaction.objectStore('tasks');
+    const request = store.getAll();
 
     request.onsuccess = (event) => {
-        const notes = event.target.result;
-        notes.forEach(renderNote);
+        const tasks = event.target.result;
+        tasks.forEach(renderTask);
     };
-    request.onerror = (event) => {
-        console.error('Error fetching notes from IDB:', event.target.error);
-    };
+    request.onerror = (event) => console.error('Error fetching tasks from IDB:', event.target.error);
 }
 
-function renderNote(note) {
-    const noteElement = document.createElement('div');
-    noteElement.classList.add('note');
-    noteElement.innerHTML = `
-        <h2>${note.title}</h2>
-        <p>${note.content}</p>
-        <button onclick="deleteNote(${note.id})">Delete</button>
-    `;
-    notesContainer.appendChild(noteElement);
-}
+// --- Task Actions ---
+taskForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const task = {
+        title: taskTitleInput.value,
+        content: taskContentInput.value,
+        dueDate: taskDueDateInput.value,
+        status: 'todo'
+    };
 
+    const outboxTx = db.transaction(['tasks_outbox'], 'readwrite');
+    outboxTx.objectStore('tasks_outbox').add(task);
+    outboxTx.oncomplete = () => {
+        taskForm.reset();
+        syncOutbox(); // Attempt to sync immediately
+        // Optimistic rendering
+        renderTask({id: 'temp-' + new Date().getTime(), ...task});
+    };
+});
 
-async function deleteNote(id) {
-    // Don't delete optimistic notes
-    if (typeof id === 'string' && id.startsWith('temp-')) {
-        return;
-    }
-    try {
-        const response = await fetch(`${API_URL}/notes/${id}`, {
-            method: 'DELETE',
-        });
-        if (response.ok) {
-            const transaction = db.transaction(['notes'], 'readwrite');
-            const objectStore = transaction.objectStore('notes');
-            objectStore.delete(id);
-            transaction.oncomplete = () => {
-                displayNotes();
-            };
-        } else {
-            console.error('Error deleting note:', response.statusText);
+async function updateTaskStatus(id, newStatus) {
+    const tx = db.transaction(['tasks'], 'readwrite');
+    const store = tx.objectStore('tasks');
+    const getReq = store.get(id);
+
+    getReq.onsuccess = () => {
+        const task = getReq.result;
+        task.status = newStatus;
+        store.put(task);
+    };
+
+    tx.oncomplete = () => {
+        // More efficient DOM update instead of re-rendering everything
+        const taskCard = document.querySelector(`.task-card[data-id='${id}']`);
+        if (taskCard) {
+            if (newStatus === 'todo') todoTasksContainer.appendChild(taskCard);
+            else if (newStatus === 'inprogress') inprogressTasksContainer.appendChild(taskCard);
+            else doneTasksContainer.appendChild(taskCard);
         }
-    } catch (error) {
-        console.error('Error deleting note:', error);
-    }
+
+        // Also send update to backend
+        fetch(`${API_URL}/tasks/${id}/status`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: newStatus })
+        }).catch(err => console.error('Failed to sync status update:', err));
+    };
 }
 
-async function main() {
-    await openDatabase();
-    displayNotes();
-    await syncOutbox();
-    syncWithNetwork();
-}
 
+// --- Syncing Logic ---
 async function syncOutbox() {
-    return new Promise((resolve, reject) => {
-        const transaction = db.transaction(['outbox'], 'readwrite');
-        const objectStore = transaction.objectStore('outbox');
-        const request = objectStore.getAll();
+    const outboxTx = db.transaction('tasks_outbox', 'readonly');
+    const outboxStore = outboxTx.objectStore('tasks_outbox');
+    const getReq = outboxStore.openCursor();
+    const syncedKeys = [];
 
-        request.onsuccess = async (event) => {
-            const outboxNotes = event.target.result;
-            if (outboxNotes.length === 0) {
-                resolve();
+    getReq.onsuccess = async (event) => {
+        const cursor = event.target.result;
+        if (cursor) {
+            const task = cursor.value;
+            try {
+                const response = await fetch(`${API_URL}/tasks`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(task),
+                });
+                if (response.ok) {
+                    syncedKeys.push(cursor.primaryKey);
+                } else {
+                     console.error('Failed to sync a task, will retry later.', await response.text());
+                }
+            } catch (error) {
+                console.error('Network error during outbox sync. Will retry later.', error);
+                // Stop trying if network is down
                 return;
             }
-            console.log(`Syncing ${outboxNotes.length} notes from outbox...`);
-            for (const note of outboxNotes) {
-                try {
-                    const response = await fetch(`${API_URL}/notes`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(note),
-                    });
-                    if (response.ok) {
-                        // Note synced, remove from outbox
-                        // This requires a new transaction, or careful handling of keys.
-                        // For simplicity, we clear the whole outbox after the loop.
-                    }
-                } catch (error) {
-                    console.error('Failed to sync a note, will retry later.', error);
-                }
+            cursor.continue();
+        } else {
+            // End of cursor, now delete synced items
+            if (syncedKeys.length > 0) {
+                const deleteTx = db.transaction('tasks_outbox', 'readwrite');
+                const deleteStore = deleteTx.objectStore('tasks_outbox');
+                syncedKeys.forEach(key => deleteStore.delete(key));
+                deleteTx.oncomplete = () => {
+                    console.log(`${syncedKeys.length} tasks synced successfully from outbox.`);
+                    syncWithNetwork(); // Refresh data from network
+                };
             }
-            // Clear the outbox after attempting to sync all notes
-            const clearTransaction = db.transaction(['outbox'], 'readwrite');
-            clearTransaction.objectStore('outbox').clear();
-            clearTransaction.oncomplete = () => resolve();
-            clearTransaction.onerror = (event) => reject(event.target.error);
-        };
-        request.onerror = (event) => {
-            reject(event.target.error);
-        };
-    });
+        }
+    };
 }
 
 async function syncWithNetwork() {
     try {
-        const response = await fetch(`${API_URL}/notes`);
-        if (!response.ok) {
-            console.error('Error fetching notes from network:', response.statusText);
-            return;
-        }
-        const notes = await response.json();
+        const response = await fetch(`${API_URL}/tasks`);
+        if (!response.ok) throw new Error('Network request failed');
 
-        const transaction = db.transaction(['notes'], 'readwrite');
-        const objectStore = transaction.objectStore('notes');
-        objectStore.clear();
-        notes.forEach(note => {
-            objectStore.add(note);
-        });
+        const tasks = await response.json();
+        const tx = db.transaction(['tasks'], 'readwrite');
+        const store = tx.objectStore('tasks');
+        store.clear();
+        tasks.forEach(task => store.add(task));
 
-        transaction.oncomplete = () => {
-            displayNotes();
-        };
-        transaction.onerror = (event) => {
-            console.error('Error saving notes to IDB:', event.target.error);
-        };
+        tx.oncomplete = displayTasks;
 
     } catch (error) {
         console.log('App is likely offline. Could not sync with network.');
     }
 }
 
+// --- Main ---
+async function main() {
+    await openDatabase();
+    await displayTasks();
+    await syncOutbox();
+    await syncWithNetwork();
+}
+
 main();
 
+// Service Worker
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js')
-            .then((registration) => {
-                console.log('ServiceWorker registration successful with scope: ', registration.scope);
-            })
-            .catch((error) => {
-                console.error('ServiceWorker registration failed: ', error);
-            });
+            .then(reg => console.log('ServiceWorker registration successful.'))
+            .catch(err => console.error('ServiceWorker registration failed: ', err));
     });
 }

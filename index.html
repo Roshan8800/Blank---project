@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Studyflow</title>
+    <title>Studyflow - Task Management</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -11,12 +11,30 @@
         <h1>Studyflow</h1>
     </header>
     <main>
-        <form id="note-form">
-            <input type="text" id="note-title" placeholder="Note title" required>
-            <textarea id="note-content" placeholder="Note content" required></textarea>
-            <button type="submit">Add Note</button>
-        </form>
-        <div id="notes-container"></div>
+        <div id="new-task-form">
+            <h2>Add New Task</h2>
+            <form id="task-form">
+                <input type="text" id="task-title" placeholder="Task title" required>
+                <textarea id="task-content" placeholder="Task details"></textarea>
+                <input type="date" id="task-due-date">
+                <button type="submit">Add Task</button>
+            </form>
+        </div>
+
+        <div id="task-board">
+            <div class="task-column" id="todo">
+                <h2>To Do</h2>
+                <div class="tasks-container" id="todo-tasks"></div>
+            </div>
+            <div class="task-column" id="inprogress">
+                <h2>In Progress</h2>
+                <div class="tasks-container" id="inprogress-tasks"></div>
+            </div>
+            <div class="task-column" id="done">
+                <h2>Done</h2>
+                <div class="tasks-container" id="done-tasks"></div>
+            </div>
+        </div>
     </main>
     <script src="script.js"></script>
 </body>

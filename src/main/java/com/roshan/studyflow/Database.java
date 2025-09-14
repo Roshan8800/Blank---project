@@ -1,4 +1,4 @@
-package com.studyflow;
+package com.roshan.studyflow;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -15,11 +15,13 @@ public class Database {
         try (Connection conn = getConnection();
              Statement stmt = conn.createStatement()) {
 
-            String sql = "CREATE TABLE IF NOT EXISTS notes (" +
-                         "id INT AUTO_INCREMENT PRIMARY KEY," +
-                         "title VARCHAR(255) NOT NULL," +
-                         "content TEXT NOT NULL)";
-            stmt.executeUpdate(sql);
+            String tasksSql = "CREATE TABLE IF NOT EXISTS tasks (" +
+                              "id INT AUTO_INCREMENT PRIMARY KEY," +
+                              "title VARCHAR(255) NOT NULL," +
+                              "content TEXT," +
+                              "status VARCHAR(50) NOT NULL," +
+                              "dueDate VARCHAR(50))";
+            stmt.executeUpdate(tasksSql);
 
         } catch (SQLException e) {
             e.printStackTrace();

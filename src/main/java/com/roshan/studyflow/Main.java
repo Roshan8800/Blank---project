@@ -1,4 +1,4 @@
-package com.studyflow;
+package com.roshan.studyflow;
 
 import static spark.Spark.*;
 
@@ -28,8 +28,8 @@ public class Main {
             return "OK";
         });
 
-        NoteController noteController = new NoteController();
-        noteController.registerRoutes();
+        TaskController taskController = new TaskController();
+        taskController.registerRoutes();
 
         get("/hello", (req, res) -> "Hello, Studyflow Backend!");
     }

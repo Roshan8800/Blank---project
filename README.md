@@ -1,2 +1,5 @@
-# Blank---project
-For creating all types of projects.
+# Studyflow
+
+Created by Roshan.
+
+This project is a full-stack, offline-capable study planning and productivity application.
