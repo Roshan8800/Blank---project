@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<link crossorigin="" href="https://fonts.gstatic.com/" rel="preconnect"/>
+<link as="style" href="https://fonts.googleapis.com/css2?display=swap&amp;family=Inter%3Awght%40400%3B500%3B700%3B900&amp;family=Noto+Sans%3Awght%40400%3B500%3B700%3B900" onload="this.rel='stylesheet'" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<title>StudyFlow Progress</title>
+<link href="data:image/x-icon;base64," rel="icon" type="image/x-icon"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<style type="text/tailwindcss">
+      :root {
+        --primary-500: #9643ea;
+        --primary-600: #8a36d9;
+        --secondary-300: #ad93c8;
+        --secondary-400: #362447;
+        --secondary-500: #261a32;
+        --secondary-600: #1a1122;
+        --success-500: #0bda73;
+      }
+      .glow-effect {
+        filter: drop-shadow(0 0 10px var(--primary-500));
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-[var(--secondary-600)]" style='font-family: Inter, "Noto Sans", sans-serif;'>
+<div class="relative flex h-auto min-h-screen w-full flex-col justify-between overflow-x-hidden dark">
+<div class="flex-grow">
+<header class="sticky top-0 z-10 flex items-center justify-between bg-[var(--secondary-600)] p-4 pb-2">
+<button class="text-white">
+<span class="material-symbols-outlined text-3xl"> menu </span>
+</button>
+<h1 class="text-xl font-bold text-white">Progress</h1>
+<div class="w-8"></div>
+</header>
+<main class="p-4">
+<div class="mb-6 flex h-12 w-full items-center justify-center rounded-full bg-[var(--secondary-500)] p-1.5">
+<label class="flex h-full flex-1 cursor-pointer items-center justify-center rounded-full px-3 text-sm font-medium text-[var(--secondary-300)] has-[:checked]:bg-[var(--primary-600)] has-[:checked]:text-white">
+<input class="sr-only" name="timeframe" type="radio" value="Today"/>
+<span>Today</span>
+</label>
+<label class="flex h-full flex-1 cursor-pointer items-center justify-center rounded-full px-3 text-sm font-medium text-[var(--secondary-300)] has-[:checked]:bg-[var(--primary-600)] has-[:checked]:text-white">
+<input checked="" class="sr-only" name="timeframe" type="radio" value="Week"/>
+<span>Week</span>
+</label>
+<label class="flex h-full flex-1 cursor-pointer items-center justify-center rounded-full px-3 text-sm font-medium text-[var(--secondary-300)] has-[:checked]:bg-[var(--primary-600)] has-[:checked]:text-white">
+<input class="sr-only" name="timeframe" type="radio" value="Month"/>
+<span>Month</span>
+</label>
+</div>
+<div class="space-y-6">
+<div class="rounded-2xl bg-[var(--secondary-500)] p-5">
+<div class="mb-4">
+<p class="text-base font-medium text-white">Tasks Completed</p>
+<p class="text-4xl font-bold text-white">12</p>
+<div class="flex items-center gap-2">
+<p class="text-sm text-[var(--secondary-300)]">This Week</p>
+<p class="flex items-center text-sm font-medium text-[var(--success-500)]">
+<span class="material-symbols-outlined text-base"> arrow_upward </span>
+                    15%
+                  </p>
+</div>
+</div>
+<div class="h-48">
+<svg fill="none" height="100%" preserveAspectRatio="none" viewBox="0 0 472 150" width="100%" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<linearGradient gradientUnits="userSpaceOnUse" id="chartGradient1" x1="236" x2="236" y1="0" y2="150">
+<stop stop-color="var(--primary-500)" stop-opacity="0.3"></stop>
+<stop offset="1" stop-color="var(--primary-500)" stop-opacity="0"></stop>
+</linearGradient>
+<filter id="glow1">
+<fedropshadow dx="0" dy="0" flood-color="var(--primary-500)" stdDeviation="4"></fedropshadow>
+</filter>
+</defs>
+<path d="M0 109C18.1538 109 18.1538 21 36.3077 21C54.4615 21 54.4615 41 72.6154 41C90.7692 41 90.7692 93 108.923 93C127.077 93 127.077 33 145.231 33C163.385 33 163.385 101 181.538 101C199.692 101 199.692 61 217.846 61C236 61 236 45 254.154 45C272.308 45 272.308 121 290.462 121C308.615 121 308.615 149 326.769 149C344.923 149 344.923 1 363.077 1C381.231 1 381.231 81 399.385 81C417.538 81 417.538 129 435.692 129C453.846 129 453.846 25 472 25V150H0V109Z" fill="url(#chartGradient1)"></path>
+<path d="M0 109C18.1538 109 18.1538 21 36.3077 21C54.4615 21 54.4615 41 72.6154 41C90.7692 41 90.7692 93 108.923 93C127.077 93 127.077 33 145.231 33C163.385 33 163.385 101 181.538 101C199.692 101 199.692 61 217.846 61C236 61 236 45 254.154 45C272.308 45 272.308 121 290.462 121C308.615 121 308.615 149 326.769 149C344.923 149 344.923 1 363.077 1C381.231 1 381.231 81 399.385 81C417.538 81 417.538 129 435.692 129C453.846 129 453.846 25 472 25" stroke="var(--primary-500)" stroke-linecap="round" stroke-width="3" style="filter: url(#glow1);"></path>
+</svg>
+</div>
+<div class="mt-4 flex justify-around border-t border-white/10 pt-3">
+<p class="text-xs font-bold text-[var(--secondary-300)]">Mon</p>
+<p class="text-xs font-bold text-[var(--secondary-300)]">Tue</p>
+<p class="text-xs font-bold text-[var(--secondary-300)]">Wed</p>
+<p class="text-xs font-bold text-[var(--secondary-300)]">Thu</p>
+<p class="text-xs font-bold text-[var(--secondary-300)]">Fri</p>
+<p class="text-xs font-bold text-[var(--secondary-300)]">Sat</p>
+<p class="text-xs font-bold text-[var(--secondary-300)]">Sun</p>
+</div>
+</div>
+<div class="rounded-2xl bg-[var(--secondary-500)] p-5">
+<div class="mb-4">
+<p class="text-base font-medium text-white">Time Spent</p>
+<p class="text-4xl font-bold text-white">15h 30m</p>
+<div class="flex items-center gap-2">
+<p class="text-sm text-[var(--secondary-300)]">This Week</p>
+<p class="flex items-center text-sm font-medium text-[var(--success-500)]">
+<span class="material-symbols-outlined text-base"> arrow_upward </span>
+                    10%
+                  </p>
+</div>
+</div>
+<div class="h-48">
+<svg fill="none" height="100%" preserveAspectRatio="none" viewBox="0 0 472 150" width="100%" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<linearGradient gradientUnits="userSpaceOnUse" id="chartGradient2" x1="236" x2="236" y1="0" y2="150">
+<stop stop-color="#0bda73" stop-opacity="0.3"></stop>
+<stop offset="1" stop-color="#0bda73" stop-opacity="0"></stop>
+</linearGradient>
+<filter id="glow2">
+<fedropshadow dx="0" dy="0" flood-color="#0bda73" stdDeviation="4"></fedropshadow>
+</filter>
+</defs>
+<path d="M0 109C18.1538 109 18.1538 21 36.3077 21C54.4615 21 54.4615 41 72.6154 41C90.7692 41 90.7692 93 108.923 93C127.077 93 127.077 33 145.231 33C163.385 33 163.385 101 181.538 101C199.692 101 199.692 61 217.846 61C236 61 236 45 254.154 45C272.308 45 272.308 121 290.462 121C308.615 121 308.615 149 326.769 149C344.923 149 344.923 1 363.077 1C381.231 1 381.231 81 399.385 81C417.538 81 417.538 129 435.692 129C453.846 129 453.846 25 472 25V150H0V109Z" fill="url(#chartGradient2)"></path>
+<path d="M0 109C18.1538 109 18.1538 21 36.3077 21C54.4615 21 54.4615 41 72.6154 41C90.7692 41 90.7692 93 108.923 93C127.077 93 127.077 33 145.231 33C163.385 33 163.385 101 181.538 101C199.692 101 199.692 61 217.846 61C236 61 236 45 254.154 45C272.308 45 272.308 121 290.462 121C308.615 121 308.615 149 326.769 149C344.923 149 344.923 1 363.077 1C381.231 1 381.231 81 399.385 81C417.538 81 417.538 129 435.692 129C453.846 129 453.846 25 472 25" stroke="var(--success-500)" stroke-linecap="round" stroke-width="3" style="filter: url(#glow2);"></path>
+</svg>
+</div>
+<div class="mt-4 flex justify-around border-t border-white/10 pt-3">
+<p class="text-xs font-bold text-[var(--secondary-300)]">Mon</p>
+<p class="text-xs font-bold text-[var(--secondary-300)]">Tue</p>
+<p class="text-xs font-bold text-[var(--secondary-300)]">Wed</p>
+<p class="text-xs font-bold text-[var(--secondary-300)]">Thu</p>
+<p class="text-xs font-bold text-[var(--secondary-300)]">Fri</p>
+<p class="text-xs font-bold text-[var(--secondary-300)]">Sat</p>
+<p class="text-xs font-bold text-[var(--secondary-300)]">Sun</p>
+</div>
+</div>
+</div>
+</main>
+</div>
+<footer class="sticky bottom-0 bg-[var(--secondary-500)] pb-5 pt-2 shadow-[0_-1px_10px_rgba(0,0,0,0.2)]">
+<nav class="flex justify-around">
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-[var(--secondary-300)]" href="#">
+<span class="material-symbols-outlined"> emoji_events </span>
+<span class="text-xs font-medium">Goals</span>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-[var(--secondary-300)]" href="tasks.html">
+<span class="material-symbols-outlined"> checklist </span>
+<span class="text-xs font-medium">Tasks</span>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-[var(--secondary-300)]" href="#">
+<span class="material-symbols-outlined"> calendar_month </span>
+<span class="text-xs font-medium">Planner</span>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-[var(--primary-500)]" href="progress.html">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;"> show_chart </span>
+<span class="text-xs font-medium">Progress</span>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-[var(--secondary-300)]" href="focus.html">
+<span class="material-symbols-outlined"> timer </span>
+<span class="text-xs font-medium">Focus</span>
+</a>
+</nav>
+</footer>
+</div>
+
+</body></html>
