@@ -76,7 +76,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const request = store.getAll();
         request.onsuccess = (event) => {
             const tasks = event.target.result;
-            tasks.sort((a, b) => (a.status === 'done') - (b.status === 'done'));
+            tasks.sort((a, b) => {
+                // Completed tasks always at the bottom
+                if (a.status === 'done' && b.status !== 'done') return 1;
+                if (a.status !== 'done' && b.status === 'done') return -1;
+
+                // Handle null/empty due dates (they go after dated tasks)
+                if (!a.dueDate && b.dueDate) return 1;
+                if (a.dueDate && !b.dueDate) return -1;
+                if (!a.dueDate && !b.dueDate) return 0;
+
+                // Sort by date ascending
+                return new Date(a.dueDate) - new Date(b.dueDate);
+            });
             tasks.forEach(renderTask);
             const taskElements = document.querySelectorAll('#tasks-view main > div[data-id]');
             taskElements.forEach(taskElement => {
@@ -418,6 +430,64 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         renderCalendar();
+
+        // --- Modal Handling ---
+        const addEventButton = document.getElementById('add-event-button');
+        const addEventModal = document.getElementById('add-event-modal');
+        const cancelEventButton = document.getElementById('cancel-event-button');
+        const eventForm = document.getElementById('event-form');
+
+        if (addEventButton && addEventModal && cancelEventButton && eventForm) {
+            addEventButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                addEventModal.classList.remove('hidden');
+            });
+
+            cancelEventButton.addEventListener('click', () => {
+                addEventModal.classList.add('hidden');
+            });
+
+            eventForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const title = document.getElementById('event-title').value;
+                const startTime24 = document.getElementById('event-start-time').value;
+                const endTime24 = document.getElementById('event-end-time').value;
+                const icon = document.getElementById('event-icon').value;
+
+                // Convert time to AM/PM format
+                const toAMPM = (time24) => {
+                    let [h, m] = time24.split(':');
+                    const suffix = h >= 12 ? 'PM' : 'AM';
+                    h = h % 12 || 12;
+                    return `${h}:${m} ${suffix}`;
+                };
+
+                const newTask = {
+                    title,
+                    startTime: toAMPM(startTime24),
+                    endTime: toAMPM(endTime24),
+                    icon: icon || 'task',
+                    dueDate: toYYYYMMDD(selectedDate),
+                    status: 'todo'
+                };
+
+                const tx = db.transaction(['tasks'], 'readwrite');
+                const store = tx.objectStore('tasks');
+                store.add(newTask);
+
+                tx.oncomplete = () => {
+                    addEventModal.classList.add('hidden');
+                    eventForm.reset();
+                    displayPlannerTasks(selectedDate);
+                    showToast('Event added successfully!', 'success');
+                };
+
+                tx.onerror = (event) => {
+                    showToast('Error adding event.');
+                    console.error('Error adding event to DB:', event.target.error);
+                };
+            });
+        }
     }
 
     // --- Mock Data Seeding ---
@@ -448,6 +518,34 @@ document.addEventListener('DOMContentLoaded', () => {
                 MOCK_TASKS.forEach(task => store.add(task));
             }
         };
+    }
+
+    // --- Charting Utilities ---
+    function generateChart(pathEl, fillEl, labelsEl, data, labels) {
+        if (!pathEl || !data || data.length < 2) {
+            if (pathEl) pathEl.setAttribute('d', 'M 0 150 L 472 150');
+            if (fillEl) fillEl.setAttribute('d', 'M 0 150 L 472 150 L 472 150 L 0 150 Z');
+            if (labelsEl) labelsEl.innerHTML = labels.map(l => `<p class="text-xs font-bold text-[var(--secondary-300)]">${l}</p>`).join('');
+            return;
+        }
+
+        const width = 472;
+        const height = 150;
+        const padding = 10;
+        const maxVal = Math.max(...data, 1);
+        const points = data.map((d, i) => {
+            const x = (width / (data.length - 1)) * i;
+            const y = height - (d / maxVal * (height - padding * 2)) - padding;
+            return { x, y };
+        });
+
+        const path = points.reduce((acc, p, i) => i === 0 ? `M ${p.x} ${p.y}` : `${acc} L ${p.x} ${p.y}`, '');
+        if (pathEl) pathEl.setAttribute('d', path);
+
+        const fillPath = `${path} L ${width} ${height} L 0 ${height} Z`;
+        if (fillEl) fillEl.setAttribute('d', fillPath);
+
+        if (labelsEl) labelsEl.innerHTML = labels.map(l => `<p class="text-xs font-bold text-[var(--secondary-300)]">${l}</p>`).join('');
     }
 
     // --- Progress View Logic ---
@@ -524,6 +622,74 @@ document.addEventListener('DOMContentLoaded', () => {
             if(timeSpentDisplay) timeSpentDisplay.textContent = `${hours}h ${minutes}m`;
 
             timeframeLabels.forEach(label => label.textContent = `This ${selectedTimeframe}`);
+
+            // --- Chart Logic ---
+            const tasksChartPath = document.getElementById('tasks-completed-chart-path');
+            const tasksChartFill = document.getElementById('tasks-completed-chart-fill-path');
+            const tasksChartLabels = document.getElementById('tasks-chart-labels');
+            const timeChartPath = document.getElementById('time-spent-chart-path');
+            const timeChartFill = document.getElementById('time-spent-chart-fill-path');
+            const timeChartLabels = document.getElementById('time-chart-labels');
+            const chartElements = [tasksChartPath, tasksChartFill, tasksChartLabels, timeChartPath, timeChartFill, timeChartLabels];
+
+            if (selectedTimeframe === 'Today') {
+                chartElements.forEach(el => el && (el.style.display = 'none'));
+                return;
+            } else {
+                chartElements.forEach(el => el && (el.style.display = 'flex'));
+            }
+
+            let chartLabels = [];
+            let taskData = [];
+            let timeData = [];
+
+            if (selectedTimeframe === 'Week') {
+                chartLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((_, i) => {
+                    const d = new Date();
+                    d.setDate(d.getDate() - (6 - i));
+                    return d.toLocaleDateString('en-US', { weekday: 'short' }).charAt(0);
+                });
+                for (let i = 0; i < 7; i++) {
+                    const day = new Date(today);
+                    day.setDate(today.getDate() - (6 - i));
+                    const dayString = toYYYYMMDD(day);
+                    const tasksForDay = doneTasks.filter(t => t.dueDate === dayString);
+                    taskData.push(tasksForDay.length);
+                    timeData.push(tasksForDay.reduce((acc, task) => {
+                        const start = parseTime(task.startTime);
+                        const end = parseTime(task.endTime);
+                        if(start && end) {
+                            const diff = (end.hours * 60 + end.minutes) - (start.hours * 60 + start.minutes);
+                            return diff > 0 ? acc + diff : acc;
+                        }
+                        return acc;
+                    }, 0));
+                }
+            } else if (selectedTimeframe === 'Month') {
+                chartLabels = ['W1', 'W2', 'W3', 'W4'];
+                const month = now.getMonth();
+                const year = now.getFullYear();
+                for (let week = 0; week < 4; week++) {
+                    const startDay = week * 7 + 1;
+                    const endDay = startDay + 6;
+                    const tasksForWeek = doneTasks.filter(t => {
+                        const taskDate = new Date(t.dueDate);
+                        return taskDate.getMonth() === month && taskDate.getFullYear() === year && taskDate.getDate() >= startDay && taskDate.getDate() <= endDay;
+                    });
+                    taskData.push(tasksForWeek.length);
+                    timeData.push(tasksForWeek.reduce((acc, task) => {
+                        const start = parseTime(task.startTime);
+                        const end = parseTime(task.endTime);
+                        if(start && end) {
+                            const diff = (end.hours * 60 + end.minutes) - (start.hours * 60 + start.minutes);
+                            return diff > 0 ? acc + diff : acc;
+                        }
+                        return acc;
+                    }, 0));
+                }
+            }
+            generateChart(tasksChartPath, tasksChartFill, tasksChartLabels, taskData, chartLabels);
+            generateChart(timeChartPath, timeChartFill, timeChartLabels, timeData.map(t => t / 60), chartLabels);
         }
 
         timeframeContainer.addEventListener('change', updateProgressView);
@@ -577,6 +743,75 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function setupTaskCreation() {
+        if (addTaskButton && addTaskModal && cancelTaskButton && taskForm) {
+            addTaskButton.addEventListener('click', () => addTaskModal.classList.remove('hidden'));
+            cancelTaskButton.addEventListener('click', () => addTaskModal.classList.add('hidden'));
+            taskForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const task = {
+                    title: taskTitleInput.value,
+                    content: taskContentInput.value || '',
+                    dueDate: taskDueDateInput.value,
+                    status: 'todo'
+                };
+
+                // Add to the main tasks store for immediate UI update
+                const tasksTx = db.transaction(['tasks'], 'readwrite');
+                const tasksStore = tasksTx.objectStore('tasks');
+                const addRequest = tasksStore.add(task);
+
+                addRequest.onsuccess = () => {
+                    // Also add to the outbox for background syncing
+                    const outboxTx = db.transaction(['tasks_outbox'], 'readwrite');
+                    outboxTx.objectStore('tasks_outbox').add(task);
+                    outboxTx.oncomplete = () => {
+                        // Sync in the background, don't wait for it
+                        syncOutbox();
+                    }
+
+                    // Refresh the UI from the database, which now contains the new task
+                    displayTasks();
+                };
+
+                // Reset form and hide modal immediately
+                taskForm.reset();
+                addTaskModal.classList.add('hidden');
+            });
+
+            // Check for goal to pre-fill
+            const goalToTask = sessionStorage.getItem('goalToTask');
+            if (goalToTask) {
+                taskTitleInput.value = goalToTask;
+                addTaskModal.classList.remove('hidden');
+                sessionStorage.removeItem('goalToTask');
+            }
+        }
+    }
+
+    // --- Goals Logic ---
+    function setupGoals() {
+        const shortTermInput = document.getElementById('short-term-goal-input');
+        const shortTermButton = document.getElementById('short-term-goal-breakdown-button');
+        const longTermInput = document.getElementById('long-term-goal-input');
+        const longTermButton = document.getElementById('long-term-goal-breakdown-button');
+
+        if (!shortTermButton || !longTermButton) return;
+
+        const handleBreakdown = (goalText) => {
+            if (goalText.trim()) {
+                sessionStorage.setItem('goalToTask', goalText.trim());
+                window.location.href = 'tasks.html';
+            } else {
+                showToast('Please enter a goal first.');
+            }
+        };
+
+        shortTermButton.addEventListener('click', () => handleBreakdown(shortTermInput.value));
+        longTermButton.addEventListener('click', () => handleBreakdown(longTermInput.value));
+    }
+
+
     // --- Main Execution ---
     async function main() {
         try {
@@ -597,6 +832,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setupTaskCreation(); // This will only run if task elements are on the page
         setupProgressView(); // This will only run if progress elements are on the page
         setupNotifications(); // This will only run if notification elements are on the page
+        setupGoals(); // This will only run if goal elements are on the page
     }
 
     main();

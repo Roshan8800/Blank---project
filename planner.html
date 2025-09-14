@@ -151,7 +151,7 @@
 <span class="material-symbols-outlined">task_alt</span>
 <p class="text-xs font-medium">Tasks</p>
 </a>
-<a class="flex flex-col items-center justify-end gap-1 text-white bg-[#9643ea] rounded-full p-3 h-16 w-16 -translate-y-4 shadow-lg shadow-[#9643ea]/30" href="#">
+<a id="add-event-button" class="flex flex-col items-center justify-end gap-1 text-white bg-[#9643ea] rounded-full p-3 h-16 w-16 -translate-y-4 shadow-lg shadow-[#9643ea]/30" href="#">
 <span class="material-symbols-outlined">add</span>
 </a>
 <a class="flex flex-col items-center justify-end gap-1 text-white" href="planner.html">
@@ -165,6 +165,24 @@
 </div>
 </div>
 </div>
+</div>
+<!-- Add Event Modal -->
+<div id="add-event-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-20">
+    <div class="bg-[#1E1926] p-6 rounded-lg w-full max-w-md m-4">
+        <h2 class="text-white text-2xl font-bold mb-4">Add New Event</h2>
+        <form id="event-form">
+            <input type="text" id="event-title" placeholder="Event title" required class="w-full bg-[#2a2135] border-none rounded-md mb-3 text-white placeholder-gray-400">
+            <div class="grid grid-cols-2 gap-4 mb-3">
+                <input type="time" id="event-start-time" required class="w-full bg-[#2a2135] border-none rounded-md text-gray-400">
+                <input type="time" id="event-end-time" required class="w-full bg-[#2a2135] border-none rounded-md text-gray-400">
+            </div>
+            <input type="text" id="event-icon" placeholder="Icon name (e.g., auto_stories)" value="task" class="w-full bg-[#2a2135] border-none rounded-md mb-4 text-white placeholder-gray-400">
+            <div class="flex gap-4">
+                <button type="button" id="cancel-event-button" class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md">Cancel</button>
+                <button type="submit" class="flex-1 bg-[#9643ea] hover:bg-[#8038c5] text-white font-bold py-2 px-4 rounded-md">Add Event</button>
+            </div>
+        </form>
+    </div>
 </div>
 <div id="toast-container" class="fixed bottom-24 right-4 space-y-2 z-50"></div>
 <script src="script.js" defer></script>
