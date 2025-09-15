@@ -256,12 +256,18 @@
         </div>
     </div>
 
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <!-- Firebase v9+ SDK -->
+    <script type="importmap">
+        {
+            "imports": {
+                "firebase/app": "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js",
+                "firebase/auth": "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js",
+                "firebase/database": "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js"
+            }
+        }
+    </script>
 
-    <script>
+    <script type="module">
         /*
         --- FIREBASE REALTIME DATABASE RULES ---
         This is a critical security step. Copy and paste these rules into your
@@ -280,27 +286,45 @@
         }
         */
 
-        // --- IMPORTANT: Paste your Firebase configuration object here ---
+        // --- Firebase v9+ Configuration ---
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_AUTH_DOMAIN",
-            databaseURL: "YOUR_DATABASE_URL",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_STORAGE_BUCKET",
-            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-            appId: "YOUR_APP_ID"
+            apiKey: "AIzaSyCpBwJQkPywlteA5hvLH43Z2is-WWu-Byo",
+            authDomain: "studyflow-8f1c4.firebaseapp.com",
+            databaseURL: "https://studyflow-8f1c4-default-rtdb.firebaseio.com",
+            projectId: "studyflow-8f1c4",
+            storageBucket: "studyflow-8f1c4.firebasestorage.app",
+            messagingSenderId: "519193491913",
+            appId: "1:519193491913:web:630906098f9b1d8318d018",
+            measurementId: "G-GGHHST1EXC"
         };
 
-        // Initialize Firebase
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
-        const auth = firebase.auth();
-        const db = firebase.database();
+        // --- Import Firebase v9+ Modules ---
+        import { initializeApp } from "firebase/app";
+        import {
+            getAuth,
+            onAuthStateChanged,
+            signInWithEmailAndPassword,
+            createUserWithEmailAndPassword,
+            signOut
+        } from "firebase/auth";
+        import {
+            getDatabase,
+            ref,
+            onValue,
+            push,
+            remove,
+            update,
+            serverTimestamp
+        } from "firebase/database";
+
+        // --- Initialize Firebase ---
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
         let currentUser = null;
         let userTasksRef = null;
 
-        // DOM Elements
+        // --- DOM Elements ---
         const authContainer = document.getElementById('auth-container');
         const appContainer = document.getElementById('app-container');
         const authError = document.getElementById('auth-error');
@@ -326,10 +350,10 @@
         }
 
         // --- AUTHENTICATION ---
-        auth.onAuthStateChanged(user => {
+        onAuthStateChanged(auth, user => {
             if (user) {
                 currentUser = user;
-                userTasksRef = db.ref(`users/${currentUser.uid}/tasks`);
+                userTasksRef = ref(db, `users/${currentUser.uid}/tasks`);
                 showAppView();
                 syncOfflineQueue();
                 loadTasks();
@@ -359,18 +383,18 @@
             const email = emailInput.value;
             const password = passwordInput.value;
             if (!email || !password) return;
-            auth.signInWithEmailAndPassword(email, password).catch(err => showError(err.message));
+            signInWithEmailAndPassword(auth, email, password).catch(err => showError(err.message));
         });
 
         signupBtn.addEventListener('click', () => {
             const email = emailInput.value;
             const password = passwordInput.value;
             if (!email || !password) return;
-            auth.createUserWithEmailAndPassword(email, password).catch(err => showError(err.message));
+            createUserWithEmailAndPassword(auth, email, password).catch(err => showError(err.message));
         });
 
         logoutBtn.addEventListener('click', () => {
-            auth.signOut().catch(err => showError(err.message));
+            signOut(auth).catch(err => showError(err.message));
         });
 
         // --- TASK MANAGEMENT ---
@@ -387,7 +411,7 @@
             const task = {
                 text: text,
                 completed: false,
-                createdAt: new Date().toISOString() // Use ISO string for offline
+                createdAt: new Date().toISOString()
             };
 
             if (!navigator.onLine) {
@@ -396,15 +420,14 @@
                 task.id = tempId;
                 offlineQueue.push(task);
                 saveOfflineQueue(offlineQueue);
-                renderTask(tempId, task); // Optimistic UI update
+                renderTask(tempId, task);
                 console.log("Task saved offline.");
                 return;
             }
 
             if (!userTasksRef) return;
-            // For online creation, use Firebase's server timestamp
-            task.createdAt = firebase.database.ServerValue.TIMESTAMP;
-            userTasksRef.push(task).catch(err => showError(`Failed to add task: ${err.message}`));
+            task.createdAt = serverTimestamp();
+            push(userTasksRef, task).catch(err => showError(`Failed to add task: ${err.message}`));
         }
 
         function deleteTask(taskId) {
@@ -415,20 +438,21 @@
                 document.querySelector(`[data-id="${taskId}"]`).remove();
                 return;
             }
-            if (!userTasksRef) return;
-            userTasksRef.child(taskId).remove().catch(err => showError(`Failed to delete task: ${err.message}`));
+            if (!currentUser) return;
+            const taskRef = ref(db, `users/${currentUser.uid}/tasks/${taskId}`);
+            remove(taskRef).catch(err => showError(`Failed to delete task: ${err.message}`));
         }
 
         function toggleTaskCompletion(taskId, completed) {
             if (taskId.startsWith('offline_')) {
                 showError("Cannot modify offline tasks until synced.");
-                // Revert checkbox state
                 const checkbox = document.querySelector(`[data-id="${taskId}"] input[type="checkbox"]`);
                 if(checkbox) checkbox.checked = !completed;
                 return;
             }
-            if (!userTasksRef) return;
-            userTasksRef.child(taskId).update({ completed: completed }).catch(err => showError(`Failed to update task: ${err.message}`));
+            if (!currentUser) return;
+            const taskRef = ref(db, `users/${currentUser.uid}/tasks/${taskId}`);
+            update(taskRef, { completed: completed }).catch(err => showError(`Failed to update task: ${err.message}`));
         }
 
         function clearTasks() {
@@ -480,16 +504,15 @@
 
             console.log(`Syncing ${queue.length} offline tasks...`);
             const promises = queue.map(task => {
-                const { id, ...taskData } = task; // Don't save temporary id to firebase
-                taskData.createdAt = firebase.database.ServerValue.TIMESTAMP;
-                return userTasksRef.push(taskData);
+                const { id, ...taskData } = task;
+                taskData.createdAt = serverTimestamp();
+                return push(userTasksRef, taskData);
             });
 
             Promise.all(promises)
                 .then(() => {
                     console.log("Offline queue synced successfully.");
-                    saveOfflineQueue([]); // Clear the queue
-                    // The 'on' listener will refresh the UI automatically
+                    saveOfflineQueue([]);
                 })
                 .catch(err => showError(`Failed to sync offline tasks: ${err.message}`));
         }
@@ -502,8 +525,8 @@
             }
 
             if (userTasksRef) {
-                userTasksRef.on('value', snapshot => {
-                    if (!navigator.onLine) return; // Don't overwrite local view if offline
+                onValue(userTasksRef, snapshot => {
+                    if (!navigator.onLine) return;
                     clearTasks();
                     const tasks = snapshot.val();
                     if (tasks) {
@@ -512,7 +535,6 @@
                     } else {
                         localStorage.removeItem(`studyflow-tasks-${currentUser.uid}`);
                     }
-                    // Render any remaining offline tasks on top
                     getOfflineQueue().forEach(task => renderTask(task.id, task));
                 }, error => {
                     showError(error.message);
