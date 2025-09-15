@@ -262,6 +262,24 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
     <script>
+        /*
+        --- FIREBASE REALTIME DATABASE RULES ---
+        This is a critical security step. Copy and paste these rules into your
+        Firebase project's Realtime Database > Rules tab. This will ensure that
+        users can only read and write their own data.
+
+        {
+          "rules": {
+            "users": {
+              "$uid": {
+                ".read": "auth != null && auth.uid == $uid",
+                ".write": "auth != null && auth.uid == $uid"
+              }
+            }
+          }
+        }
+        */
+
         // --- IMPORTANT: Paste your Firebase configuration object here ---
         const firebaseConfig = {
             apiKey: "YOUR_API_KEY",
