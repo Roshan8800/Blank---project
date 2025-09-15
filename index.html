@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyFlow</title>
+    <meta name="description" content="StudyFlow is a comprehensive study planning and productivity app designed for students, professionals, and lifelong learners.">
+    <meta name="author" content="Roshan">
+
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #50e3c2;
+            --background-color: #f4f7f6;
+            --font-color: #333;
+            --light-gray: #ecf0f1;
+            --dark-gray: #7f8c8d;
+            --danger-color: #e74c3c;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            background-color: var(--background-color);
+            color: var(--font-color);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        #app {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #fff;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 20px;
+        }
+
+        .container {
+            padding: 20px;
+        }
+
+        /* Auth Container */
+        #auth-container h2 {
+            text-align: center;
+            color: var(--primary-color);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .form-group input {
+            width: calc(100% - 20px);
+            padding: 10px;
+            border: 1px solid var(--light-gray);
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .auth-buttons {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            flex-grow: 1;
+            transition: background-color 0.3s ease;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #357abd;
+        }
+
+        .btn-secondary {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #45cba8;
+        }
+
+        #auth-error {
+            color: var(--danger-color);
+            text-align: center;
+            margin-top: 10px;
+            display: none;
+        }
+
+        /* App Container */
+        #app-container header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #app-container header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        #user-email {
+            font-size: 0.8rem;
+            font-weight: 300;
+        }
+
+        #logout-btn {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        #logout-btn:hover {
+            background: #c0392b;
+        }
+
+        #task-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        #task-input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid var(--light-gray);
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        #task-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .task-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid var(--light-gray);
+            transition: background-color 0.2s ease;
+        }
+
+        .task-item:last-child {
+            border-bottom: none;
+        }
+
+        .task-item.completed span {
+            text-decoration: line-through;
+            color: var(--dark-gray);
+        }
+
+        .task-item input[type="checkbox"] {
+            margin-right: 15px;
+            min-width: 20px;
+            height: 20px;
+        }
+
+        .task-item span {
+            flex-grow: 1;
+            cursor: pointer;
+        }
+
+        .delete-btn {
+            background: none;
+            border: none;
+            color: var(--danger-color);
+            font-size: 1.2rem;
+            cursor: pointer;
+            opacity: 0.5;
+            transition: opacity 0.3s ease;
+        }
+
+        .task-item:hover .delete-btn {
+            opacity: 1;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 640px) {
+            #app {
+                margin-top: 0;
+                border-radius: 0;
+                min-height: 100vh;
+            }
+            .auth-buttons {
+                flex-direction: column;
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="app">
+        <!-- Authentication View -->
+        <div id="auth-container" class="container">
+            <h2>Welcome to StudyFlow</h2>
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" required>
+            </div>
+            <div class="auth-buttons">
+                <button id="login-btn" class="btn btn-primary">Login</button>
+                <button id="signup-btn" class="btn btn-secondary">Sign Up</button>
+            </div>
+            <p id="auth-error"></p>
+        </div>
+
+        <!-- Main App View -->
+        <div id="app-container" style="display: none;">
+            <header>
+                <div>
+                    <h1>StudyFlow</h1>
+                    <span id="user-email"></span>
+                </div>
+                <button id="logout-btn" class="btn">Logout</button>
+            </header>
+            <main class="container">
+                <form id="task-form">
+                    <input type="text" id="task-input" placeholder="Add a new task or goal..." required>
+                    <button type="submit" class="btn btn-primary">Add</button>
+                </form>
+                <ul id="task-list">
+                    <!-- Tasks will be rendered here -->
+                </ul>
+            </main>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <script>
+        // --- IMPORTANT: Paste your Firebase configuration object here ---
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            databaseURL: "YOUR_DATABASE_URL",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // Initialize Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const auth = firebase.auth();
+        const db = firebase.database();
+        let currentUser = null;
+        let userTasksRef = null;
+
+        // DOM Elements
+        const authContainer = document.getElementById('auth-container');
+        const appContainer = document.getElementById('app-container');
+        const authError = document.getElementById('auth-error');
+        const userEmailSpan = document.getElementById('user-email');
+
+        const loginBtn = document.getElementById('login-btn');
+        const signupBtn = document.getElementById('signup-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+
+        const taskForm = document.getElementById('task-form');
+        const taskInput = document.getElementById('task-input');
+        const taskList = document.getElementById('task-list');
+
+        // --- AUTHENTICATION ---
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                currentUser = user;
+                userTasksRef = db.ref(`users/${currentUser.uid}/tasks`);
+                showAppView();
+                loadTasks();
+            } else {
+                currentUser = null;
+                userTasksRef = null;
+                showAuthView();
+                clearTasks();
+            }
+        });
+
+        function showAppView() {
+            authContainer.style.display = 'none';
+            appContainer.style.display = 'block';
+            userEmailSpan.textContent = currentUser.email;
+        }
+
+        function showAuthView() {
+            authContainer.style.display = 'block';
+            appContainer.style.display = 'none';
+            authError.style.display = 'none';
+            emailInput.value = '';
+            passwordInput.value = '';
+        }
+
+        function handleAuthAction(promise) {
+            promise.catch(error => {
+                authError.textContent = error.message;
+                authError.style.display = 'block';
+            });
+        }
+
+        loginBtn.addEventListener('click', () => {
+            const email = emailInput.value;
+            const password = passwordInput.value;
+            if (!email || !password) return;
+            handleAuthAction(auth.signInWithEmailAndPassword(email, password));
+        });
+
+        signupBtn.addEventListener('click', () => {
+            const email = emailInput.value;
+            const password = passwordInput.value;
+            if (!email || !password) return;
+            handleAuthAction(auth.createUserWithEmailAndPassword(email, password));
+        });
+
+        logoutBtn.addEventListener('click', () => {
+            auth.signOut();
+        });
+
+        // --- TASK MANAGEMENT ---
+        taskForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const taskText = taskInput.value.trim();
+            if (taskText) {
+                addTask(taskText);
+                taskInput.value = '';
+            }
+        });
+
+        function addTask(text) {
+            if (!userTasksRef) return;
+            const task = {
+                text: text,
+                completed: false,
+                createdAt: firebase.database.ServerValue.TIMESTAMP
+            };
+            userTasksRef.push(task);
+        }
+
+        function deleteTask(taskId) {
+            if (!userTasksRef) return;
+            userTasksRef.child(taskId).remove();
+        }
+
+        function toggleTaskCompletion(taskId, completed) {
+            if (!userTasksRef) return;
+            userTasksRef.child(taskId).update({ completed: completed });
+        }
+
+        function clearTasks() {
+            taskList.innerHTML = '';
+        }
+
+        function renderTask(taskId, task) {
+            const taskItem = document.createElement('li');
+            taskItem.className = 'task-item';
+            taskItem.dataset.id = taskId;
+            if (task.completed) {
+                taskItem.classList.add('completed');
+            }
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = task.completed;
+            checkbox.addEventListener('change', () => {
+                toggleTaskCompletion(taskId, checkbox.checked);
+            });
+
+            const span = document.createElement('span');
+            span.textContent = task.text;
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.innerHTML = '&times;';
+            deleteBtn.addEventListener('click', () => {
+                deleteTask(taskId);
+            });
+
+            taskItem.appendChild(checkbox);
+            taskItem.appendChild(span);
+            taskItem.appendChild(deleteBtn);
+
+            taskList.prepend(taskItem); // Add new tasks to the top
+        }
+
+        // --- DATA SYNCING & OFFLINE ---
+        function loadTasks() {
+            // Try to load from local storage first for faster UI render
+            const localTasks = loadTasksFromLocal();
+            if (localTasks) {
+                clearTasks();
+                Object.entries(localTasks).forEach(([id, task]) => renderTask(id, task));
+            }
+
+            if (navigator.onLine && userTasksRef) {
+                userTasksRef.on('value', snapshot => {
+                    clearTasks();
+                    const tasks = snapshot.val();
+                    if (tasks) {
+                        Object.entries(tasks).forEach(([id, task]) => {
+                            renderTask(id, task);
+                        });
+                        saveTasksToLocal(tasks);
+                    } else {
+                        localStorage.removeItem(`studyflow-tasks-${currentUser.uid}`);
+                    }
+                });
+            }
+        }
+
+        function saveTasksToLocal(tasks) {
+            if (!currentUser) return;
+            try {
+                localStorage.setItem(`studyflow-tasks-${currentUser.uid}`, JSON.stringify(tasks));
+            } catch (e) {
+                console.error("Could not save tasks to local storage.", e);
+            }
+        }
+
+        function loadTasksFromLocal() {
+            if (!currentUser) return null;
+            try {
+                const tasks = localStorage.getItem(`studyflow-tasks-${currentUser.uid}`);
+                return tasks ? JSON.parse(tasks) : null;
+            } catch (e) {
+                console.error("Could not load tasks from local storage.", e);
+                return null;
+            }
+        }
+
+        // Listen for online/offline status changes
+        window.addEventListener('online', () => {
+            console.log("Back online. Syncing data...");
+            if(userTasksRef) {
+                // Re-attach listener to get fresh data
+                loadTasks();
+            }
+        });
+
+        window.addEventListener('offline', () => {
+            console.log("App is offline. Using local data.");
+        });
+
+    </script>
+</body>
+</html>
