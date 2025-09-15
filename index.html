@@ -268,25 +268,63 @@
         </div>
     </div>
 
-    <div id="app" style="display: none;">
-        <!-- Authentication View -->
-        <div id="auth-container" class="container">
-            <h2>Welcome to StudyFlow</h2>
-            <div class="form-group">
-                <label for="email">Email</label>
-                <input type="email" id="email" required>
-            </div>
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" required>
-            </div>
-            <div class="auth-buttons">
-                <button id="login-btn" class="btn btn-primary">Login</button>
-                <button id="signup-btn" class="btn btn-secondary">Sign Up</button>
-            </div>
-            <p id="auth-error"></p>
+    <div id="signin-screen" class="fixed inset-0 bg-black bg-opacity-50 z-20 flex items-center justify-center" style="display: none;">
+        <div class="bg-[var(--secondary-400)] rounded-2xl shadow-2xl p-8 w-full max-w-md m-4">
+            <h2 class="text-white text-3xl font-bold text-center mb-6">Sign In</h2>
+            <form id="signin-form">
+                <div class="space-y-4">
+                    <div>
+                        <label for="signin-email" class="text-gray-300 font-medium">Email</label>
+                        <input type="email" id="signin-email" required class="w-full mt-2 px-4 py-3 bg-gray-700 bg-opacity-50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--primary-500)] transition">
+                    </div>
+                    <div>
+                        <label for="signin-password" class="text-gray-300 font-medium">Password</label>
+                        <input type="password" id="signin-password" required class="w-full mt-2 px-4 py-3 bg-gray-700 bg-opacity-50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--primary-500)] transition">
+                    </div>
+                </div>
+                <div class="mt-8">
+                    <button type="submit" id="signin-btn" class="w-full flex items-center justify-center h-14 px-6 rounded-full bg-[var(--primary-500)] text-white text-lg font-bold tracking-wide transition-all duration-300 ease-in-out hover:bg-opacity-90 hover:shadow-lg hover:shadow-[#068cf9]/20">
+                        Sign In
+                    </button>
+                </div>
+            </form>
+            <p class="text-center text-gray-400 mt-6">
+                Don't have an account? <a href="#" id="switch-to-signup" class="text-[var(--primary-500)] hover:underline font-medium">Sign Up</a>
+            </p>
         </div>
+    </div>
 
+    <div id="signup-screen" class="fixed inset-0 bg-black bg-opacity-50 z-20 flex items-center justify-center" style="display: none;">
+        <div class="bg-[var(--secondary-400)] rounded-2xl shadow-2xl p-8 w-full max-w-md m-4">
+            <h2 class="text-white text-3xl font-bold text-center mb-6">Create Account</h2>
+            <form id="signup-form">
+                <div class="space-y-4">
+                    <div>
+                        <label for="signup-email" class="text-gray-300 font-medium">Email</label>
+                        <input type="email" id="signup-email" required class="w-full mt-2 px-4 py-3 bg-gray-700 bg-opacity-50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--primary-500)] transition">
+                    </div>
+                    <div>
+                        <label for="signup-password" class="text-gray-300 font-medium">Password</label>
+                        <input type="password" id="signup-password" required class="w-full mt-2 px-4 py-3 bg-gray-700 bg-opacity-50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--primary-500)] transition">
+                    </div>
+                    <div>
+                        <label for="signup-password-confirm" class="text-gray-300 font-medium">Confirm Password</label>
+                        <input type="password" id="signup-password-confirm" required class="w-full mt-2 px-4 py-3 bg-gray-700 bg-opacity-50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--primary-500)] transition">
+                    </div>
+                </div>
+                <div class="mt-8">
+                    <button type="submit" id="signup-btn-new" class="w-full flex items-center justify-center h-14 px-6 rounded-full bg-[var(--primary-500)] text-white text-lg font-bold tracking-wide transition-all duration-300 ease-in-out hover:bg-opacity-90 hover:shadow-lg hover:shadow-[#068cf9]/20">
+                        Sign Up
+                    </button>
+                </div>
+            </form>
+            <p class="text-center text-gray-400 mt-6">
+                Already have an account? <a href="#" id="switch-to-signin" class="text-[var(--primary-500)] hover:underline font-medium">Sign In</a>
+            </p>
+        </div>
+    </div>
+
+    <div id="app" style="display: none;">
         <!-- Main App View -->
         <div id="app-container" style="display: none;">
             <header>
@@ -381,26 +419,40 @@
         const landingLoginBtn = document.getElementById('landing-login-btn');
         const landingSignupBtn = document.getElementById('landing-signup-btn');
         const appDiv = document.getElementById('app');
-        const authContainer = document.getElementById('auth-container');
         const appContainer = document.getElementById('app-container');
-        const authError = document.getElementById('auth-error');
         const userEmailSpan = document.getElementById('user-email');
-        const loginBtn = document.getElementById('login-btn');
-        const signupBtn = document.getElementById('signup-btn');
         const logoutBtn = document.getElementById('logout-btn');
-        const emailInput = document.getElementById('email');
-        const passwordInput = document.getElementById('password');
         const taskForm = document.getElementById('task-form');
         const taskInput = document.getElementById('task-input');
         const taskList = document.getElementById('task-list');
 
+        // Sign-in Screen
+        const signinScreen = document.getElementById('signin-screen');
+        const signinForm = document.getElementById('signin-form');
+        const signinEmailInput = document.getElementById('signin-email');
+        const signinPasswordInput = document.getElementById('signin-password');
+        const switchToSignupBtn = document.getElementById('switch-to-signup');
+
+        // Sign-up Screen
+        const signupScreen = document.getElementById('signup-screen');
+        const signupForm = document.getElementById('signup-form');
+        const signupEmailInput = document.getElementById('signup-email');
+        const signupPasswordInput = document.getElementById('signup-password');
+        const signupPasswordConfirmInput = document.getElementById('signup-password-confirm');
+        const switchToSigninBtn = document.getElementById('switch-to-signin');
+
         // --- UTILITY FUNCTIONS ---
-        function showError(message) {
-            authError.textContent = message;
-            authError.style.display = 'block';
+        function showAuthError(form, message) {
+            let errorEl = form.querySelector('.auth-error');
+            if (!errorEl) {
+                errorEl = document.createElement('p');
+                errorEl.className = 'auth-error text-red-400 text-sm text-center mt-4';
+                form.appendChild(errorEl);
+            }
+            errorEl.textContent = message;
             setTimeout(() => {
-                if (authError.textContent === message) {
-                    authError.style.display = 'none';
+                if (errorEl && errorEl.textContent === message) {
+                    errorEl.remove();
                 }
             }, 3000);
         }
@@ -408,6 +460,8 @@
         // --- VIEW MANAGEMENT ---
         function showLandingView() {
             landingContainer.style.display = 'flex';
+            signinScreen.style.display = 'none';
+            signupScreen.style.display = 'none';
             appDiv.style.display = 'none';
             document.body.classList.remove('light-theme');
             document.body.style.fontFamily = '"Space Grotesk", "Noto Sans", sans-serif';
@@ -415,25 +469,27 @@
 
         function showAppView() {
             landingContainer.style.display = 'none';
+            signinScreen.style.display = 'none';
+            signupScreen.style.display = 'none';
             appDiv.style.display = 'block';
-            authContainer.style.display = 'none';
             appContainer.style.display = 'block';
             userEmailSpan.textContent = currentUser.email;
             document.body.classList.add('light-theme');
             document.body.style.fontFamily = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
         }
 
-        function showAuthView() {
-            landingContainer.style.display = 'none';
-            appDiv.style.display = 'block';
-            authContainer.style.display = 'block';
-            appContainer.style.display = 'none';
-            authError.style.display = 'none';
-            emailInput.value = '';
-            passwordInput.value = '';
-            document.body.classList.add('light-theme');
-            document.body.style.fontFamily = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
-            emailInput.focus();
+        function showSigninScreen() {
+            landingContainer.style.display = 'flex';
+            signupScreen.style.display = 'none';
+            signinScreen.style.display = 'flex';
+            signinEmailInput.focus();
+        }
+
+        function showSignupScreen() {
+            landingContainer.style.display = 'flex';
+            signinScreen.style.display = 'none';
+            signupScreen.style.display = 'flex';
+            signupEmailInput.focus();
         }
 
         // --- AUTHENTICATION ---
@@ -452,25 +508,42 @@
             }
         });
 
-        landingLoginBtn.addEventListener('click', showAuthView);
-        landingSignupBtn.addEventListener('click', showAuthView);
-
-        loginBtn.addEventListener('click', () => {
-            const email = emailInput.value;
-            const password = passwordInput.value;
-            if (!email || !password) return;
-            signInWithEmailAndPassword(auth, email, password).catch(err => showError(err.message));
+        landingLoginBtn.addEventListener('click', showSigninScreen);
+        landingSignupBtn.addEventListener('click', showSignupScreen);
+        switchToSignupBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            showSignupScreen();
+        });
+        switchToSigninBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            showSigninScreen();
         });
 
-        signupBtn.addEventListener('click', () => {
-            const email = emailInput.value;
-            const password = passwordInput.value;
+        signinForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = signinEmailInput.value;
+            const password = signinPasswordInput.value;
             if (!email || !password) return;
-            createUserWithEmailAndPassword(auth, email, password).catch(err => showError(err.message));
+            signInWithEmailAndPassword(auth, email, password)
+                .catch(err => showAuthError(signinForm, err.message));
+        });
+
+        signupForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = signupEmailInput.value;
+            const password = signupPasswordInput.value;
+            const confirmPassword = signupPasswordConfirmInput.value;
+            if (!email || !password) return;
+            if (password !== confirmPassword) {
+                showAuthError(signupForm, "Passwords do not match.");
+                return;
+            }
+            createUserWithEmailAndPassword(auth, email, password)
+                .catch(err => showAuthError(signupForm, err.message));
         });
 
         logoutBtn.addEventListener('click', () => {
-            signOut(auth).catch(err => showError(err.message));
+            signOut(auth).catch(err => showAuthError(appContainer, err.message));
         });
 
         // --- TASK MANAGEMENT ---
@@ -503,7 +576,7 @@
 
             if (!userTasksRef) return;
             task.createdAt = serverTimestamp();
-            push(userTasksRef, task).catch(err => showError(`Failed to add task: ${err.message}`));
+            push(userTasksRef, task).catch(err => showAuthError(taskForm, `Failed to add task: ${err.message}`));
         }
 
         function deleteTask(taskId) {
@@ -516,19 +589,19 @@
             }
             if (!currentUser) return;
             const taskRef = ref(db, `users/${currentUser.uid}/tasks/${taskId}`);
-            remove(taskRef).catch(err => showError(`Failed to delete task: ${err.message}`));
+            remove(taskRef).catch(err => showAuthError(taskForm, `Failed to delete task: ${err.message}`));
         }
 
         function toggleTaskCompletion(taskId, completed) {
             if (taskId.startsWith('offline_')) {
-                showError("Cannot modify offline tasks until synced.");
+                showAuthError(taskForm, "Cannot modify offline tasks until synced.");
                 const checkbox = document.querySelector(`[data-id="${taskId}"] input[type="checkbox"]`);
                 if(checkbox) checkbox.checked = !completed;
                 return;
             }
             if (!currentUser) return;
             const taskRef = ref(db, `users/${currentUser.uid}/tasks/${taskId}`);
-            update(taskRef, { completed: completed }).catch(err => showError(`Failed to update task: ${err.message}`));
+            update(taskRef, { completed: completed }).catch(err => showAuthError(taskForm, `Failed to update task: ${err.message}`));
         }
 
         function clearTasks() {
@@ -590,7 +663,7 @@
                     console.log("Offline queue synced successfully.");
                     saveOfflineQueue([]);
                 })
-                .catch(err => showError(`Failed to sync offline tasks: ${err.message}`));
+                .catch(err => showAuthError(taskForm, `Failed to sync offline tasks: ${err.message}`));
         }
 
         function loadTasks() {
@@ -613,7 +686,7 @@
                     }
                     getOfflineQueue().forEach(task => renderTask(task.id, task));
                 }, error => {
-                    showError(error.message);
+                    showAuthError(taskForm, error.message);
                     console.error(error);
                 });
             }
@@ -624,7 +697,7 @@
             try {
                 localStorage.setItem(`studyflow-tasks-${currentUser.uid}`, JSON.stringify(tasks));
             } catch (e) {
-                showError("Could not save tasks locally.");
+                showAuthError(taskForm, "Could not save tasks locally.");
                 console.error(e);
             }
         }
@@ -635,7 +708,7 @@
                 const tasks = localStorage.getItem(`studyflow-tasks-${currentUser.uid}`);
                 return tasks ? JSON.parse(tasks) : null;
             } catch (e) {
-                showError("Could not load local tasks.");
+                showAuthError(taskForm, "Could not load local tasks.");
                 console.error(e);
                 return null;
             }
