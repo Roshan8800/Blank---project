@@ -14,15 +14,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Database Functions ---
     function openDatabase() {
         return new Promise((resolve, reject) => {
-            const request = indexedDB.open('StudyflowDB_Tasks', 1);
+            const request = indexedDB.open('StudyflowDB_Tasks', 2); // Bump version to 2
             request.onupgradeneeded = (event) => {
                 db = event.target.result;
                 if (!db.objectStoreNames.contains('tasks')) {
-                    // Use autoIncrementing key for simplicity
                     db.createObjectStore('tasks', { keyPath: 'id', autoIncrement: true });
                 }
                 if (!db.objectStoreNames.contains('tasks_outbox')) {
                     db.createObjectStore('tasks_outbox', { autoIncrement: true });
+                }
+                if (!db.objectStoreNames.contains('goals')) {
+                    db.createObjectStore('goals', { keyPath: 'id' });
                 }
             };
             request.onsuccess = (event) => {
@@ -314,7 +316,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         function renderPlannerTask(task) {
             const taskElement = document.createElement('div');
-            taskElement.className = 'flex items-center gap-4 p-4 rounded-xl bg-[#1E142A]';
+            taskElement.className = 'flex items-center gap-4 p-4 rounded-xl bg-[#1E142A] relative';
+            taskElement.dataset.id = task.id; // Set the task ID here
+
             taskElement.innerHTML = `
                 <div class="text-white flex items-center justify-center rounded-lg bg-[#362447] shrink-0 size-12">
                     <span class="material-symbols-outlined">${task.icon || 'task'}</span>
@@ -323,9 +327,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     <p class="text-white font-medium">${task.title}</p>
                     <p class="text-[#ad93c8] text-sm">${task.startTime} - ${task.endTime}</p>
                 </div>
-                <button class="text-gray-400 hover:text-white">
+                <button class="more-button text-gray-400 hover:text-white p-2 rounded-full">
                     <span class="material-symbols-outlined">more_vert</span>
                 </button>
+                <div class="context-menu hidden absolute right-4 top-14 bg-[#2a2135] rounded-lg shadow-lg p-2 z-10 w-32">
+                    <button data-action="edit" class="w-full text-left px-3 py-1.5 text-white hover:bg-[#362447] rounded-md text-sm flex items-center gap-2">
+                        <span class="material-symbols-outlined !text-base">edit</span>Edit
+                    </button>
+                    <button data-action="delete" class="w-full text-left px-3 py-1.5 text-white hover:bg-[#362447] rounded-md text-sm flex items-center gap-2">
+                        <span class="material-symbols-outlined !text-base">delete</span>Delete
+                    </button>
+                </div>
             `;
             return taskElement;
         }
@@ -431,15 +443,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
         renderCalendar();
 
-        // --- Modal Handling ---
+        // --- Modal & Context Menu Logic ---
         const addEventButton = document.getElementById('add-event-button');
         const addEventModal = document.getElementById('add-event-modal');
         const cancelEventButton = document.getElementById('cancel-event-button');
         const eventForm = document.getElementById('event-form');
+        let currentlyOpenMenu = null;
+
+        // Close menu if clicking elsewhere
+        document.addEventListener('click', (e) => {
+            if (currentlyOpenMenu && !e.target.closest('.relative')) {
+                currentlyOpenMenu.classList.add('hidden');
+                currentlyOpenMenu = null;
+            }
+        }, true); // Use capture phase to catch clicks early
 
         if (addEventButton && addEventModal && cancelEventButton && eventForm) {
             addEventButton.addEventListener('click', (e) => {
                 e.preventDefault();
+                eventForm.reset();
+                delete eventForm.dataset.editingId;
+                addEventModal.querySelector('h2').textContent = 'Add New Event';
+                eventForm.querySelector('button[type="submit"]').textContent = 'Add Event';
                 addEventModal.classList.remove('hidden');
             });
 
@@ -447,22 +472,82 @@ document.addEventListener('DOMContentLoaded', () => {
                 addEventModal.classList.add('hidden');
             });
 
+            taskListContainer.addEventListener('click', (e) => {
+                const moreButton = e.target.closest('.more-button');
+                const actionButton = e.target.closest('button[data-action]');
+
+                if (moreButton) {
+                    e.stopPropagation(); // Prevent document click listener from closing immediately
+                    const contextMenu = moreButton.nextElementSibling;
+                    if (currentlyOpenMenu && currentlyOpenMenu !== contextMenu) {
+                        currentlyOpenMenu.classList.add('hidden');
+                    }
+                    contextMenu.classList.toggle('hidden');
+                    currentlyOpenMenu = contextMenu.classList.contains('hidden') ? null : contextMenu;
+                    return;
+                }
+
+                if (actionButton) {
+                    const taskElement = actionButton.closest('[data-id]');
+                    const taskId = parseInt(taskElement.dataset.id, 10);
+                    const action = actionButton.dataset.action;
+
+                    if (action === 'delete') {
+                        if (confirm('Are you sure you want to delete this event?')) {
+                            const tx = db.transaction(['tasks'], 'readwrite');
+                            tx.objectStore('tasks').delete(taskId);
+                            tx.oncomplete = () => {
+                                showToast('Event deleted.', 'success');
+                                displayPlannerTasks(selectedDate);
+                            };
+                        }
+                    } else if (action === 'edit') {
+                        const tx = db.transaction(['tasks'], 'readonly');
+                        const store = tx.objectStore('tasks');
+                        const getReq = store.get(taskId);
+                        getReq.onsuccess = () => {
+                            const task = getReq.result;
+                            if (task) {
+                                const to24Hour = (time12h) => {
+                                    if (!time12h) return '';
+                                    const [time, modifier] = time12h.split(' ');
+                                    let [hours, minutes] = time.split(':');
+                                    hours = parseInt(hours, 10);
+                                    if (modifier.toUpperCase() === 'PM' && hours !== 12) hours += 12;
+                                    if (modifier.toUpperCase() === 'AM' && hours === 12) hours = 0;
+                                    return `${hours.toString().padStart(2, '0')}:${minutes}`;
+                                };
+                                document.getElementById('event-title').value = task.title;
+                                document.getElementById('event-start-time').value = to24Hour(task.startTime);
+                                document.getElementById('event-end-time').value = to24Hour(task.endTime);
+                                document.getElementById('event-icon').value = task.icon;
+                                eventForm.dataset.editingId = task.id;
+                                addEventModal.querySelector('h2').textContent = 'Edit Event';
+                                eventForm.querySelector('button[type="submit"]').textContent = 'Save Changes';
+                                addEventModal.classList.remove('hidden');
+                            }
+                        };
+                    }
+                }
+            });
+
             eventForm.addEventListener('submit', (e) => {
                 e.preventDefault();
+                const editingId = eventForm.dataset.editingId ? parseInt(eventForm.dataset.editingId, 10) : null;
                 const title = document.getElementById('event-title').value;
                 const startTime24 = document.getElementById('event-start-time').value;
                 const endTime24 = document.getElementById('event-end-time').value;
                 const icon = document.getElementById('event-icon').value;
 
-                // Convert time to AM/PM format
                 const toAMPM = (time24) => {
+                    if (!time24) return '';
                     let [h, m] = time24.split(':');
                     const suffix = h >= 12 ? 'PM' : 'AM';
                     h = h % 12 || 12;
                     return `${h}:${m} ${suffix}`;
                 };
 
-                const newTask = {
+                const taskData = {
                     title,
                     startTime: toAMPM(startTime24),
                     endTime: toAMPM(endTime24),
@@ -471,20 +556,25 @@ document.addEventListener('DOMContentLoaded', () => {
                     status: 'todo'
                 };
 
+                if (editingId) {
+                    taskData.id = editingId;
+                }
+
                 const tx = db.transaction(['tasks'], 'readwrite');
                 const store = tx.objectStore('tasks');
-                store.add(newTask);
+                const req = store.put(taskData);
 
-                tx.oncomplete = () => {
+                req.onsuccess = () => {
                     addEventModal.classList.add('hidden');
                     eventForm.reset();
+                    delete eventForm.dataset.editingId;
                     displayPlannerTasks(selectedDate);
-                    showToast('Event added successfully!', 'success');
+                    showToast(editingId ? 'Event updated!' : 'Event added!', 'success');
                 };
 
-                tx.onerror = (event) => {
-                    showToast('Error adding event.');
-                    console.error('Error adding event to DB:', event.target.error);
+                req.onerror = (event) => {
+                    showToast('Error saving event.');
+                    console.error('Error saving event to DB:', event.target.error);
                 };
             });
         }
@@ -795,20 +885,102 @@ document.addEventListener('DOMContentLoaded', () => {
         const shortTermButton = document.getElementById('short-term-goal-breakdown-button');
         const longTermInput = document.getElementById('long-term-goal-input');
         const longTermButton = document.getElementById('long-term-goal-breakdown-button');
+        const saveButton = document.getElementById('save-goals-button');
 
-        if (!shortTermButton || !longTermButton) return;
+        if (!shortTermInput) return; // Only run on goals page
 
-        const handleBreakdown = (goalText) => {
-            if (goalText.trim()) {
-                sessionStorage.setItem('goalToTask', goalText.trim());
-                window.location.href = 'tasks.html';
-            } else {
-                showToast('Please enter a goal first.');
+        // --- Load existing goals ---
+        if (db) {
+            const tx = db.transaction(['goals'], 'readonly');
+            const store = tx.objectStore('goals');
+            store.get('short-term').onsuccess = e => {
+                if (e.target.result) shortTermInput.value = e.target.result.text;
+            };
+            store.get('long-term').onsuccess = e => {
+                if (e.target.result) longTermInput.value = e.target.result.text;
+            };
+        }
+
+        // --- Breakdown button logic ---
+        if (shortTermButton && longTermButton) {
+            const handleBreakdown = (goalText) => {
+                if (goalText.trim()) {
+                    sessionStorage.setItem('goalToTask', goalText.trim());
+                    window.location.href = 'tasks.html';
+                } else {
+                    showToast('Please enter a goal first.');
+                }
+            };
+            shortTermButton.addEventListener('click', () => handleBreakdown(shortTermInput.value));
+            longTermButton.addEventListener('click', () => handleBreakdown(longTermInput.value));
+        }
+
+        // --- Save button logic ---
+        if (saveButton) {
+            saveButton.addEventListener('click', () => {
+                const shortTermText = shortTermInput.value;
+                const longTermText = longTermInput.value;
+                const tx = db.transaction(['goals'], 'readwrite');
+                const store = tx.objectStore('goals');
+                store.put({ id: 'short-term', text: shortTermText });
+                store.put({ id: 'long-term', text: longTermText });
+                tx.oncomplete = () => showToast('Goals saved successfully!', 'success');
+                tx.onerror = () => showToast('Error saving goals.');
+            });
+        }
+    }
+
+
+    // --- Soundscapes Logic ---
+    function setupSoundscapes() {
+        const soundListContainer = document.getElementById('sound-list');
+        if (!soundListContainer) return;
+
+        const sounds = [
+            { name: 'Rain', file: 'assets/rain.mp3', icon: 'water_drop' },
+            { name: 'Forest', file: 'assets/forest.mp3', icon: 'park' },
+            { name: 'Cafe', file: 'assets/cafe.mp3', icon: 'local_cafe' }
+        ];
+
+        let audioPlayer = new Audio();
+        let currentlyPlayingButton = null;
+
+        sounds.forEach(sound => {
+            const soundElement = document.createElement('div');
+            soundElement.className = 'flex items-center justify-between p-4 rounded-2xl bg-[#1C1127]';
+            soundElement.innerHTML = `
+                <div class="flex items-center gap-4">
+                    <span class="material-symbols-outlined text-white">${sound.icon}</span>
+                    <p class="text-white font-medium">${sound.name}</p>
+                </div>
+                <button data-src="${sound.file}" class="play-pause-button text-white p-2 rounded-full hover:bg-[#362447]">
+                    <span class="material-symbols-outlined">play_arrow</span>
+                </button>
+            `;
+            soundListContainer.appendChild(soundElement);
+        });
+
+        soundListContainer.addEventListener('click', (e) => {
+            const button = e.target.closest('.play-pause-button');
+            if (!button) return;
+
+            const isPlaying = button === currentlyPlayingButton;
+
+            if (currentlyPlayingButton) {
+                currentlyPlayingButton.innerHTML = '<span class="material-symbols-outlined">play_arrow</span>';
+                audioPlayer.pause();
             }
-        };
 
-        shortTermButton.addEventListener('click', () => handleBreakdown(shortTermInput.value));
-        longTermButton.addEventListener('click', () => handleBreakdown(longTermInput.value));
+            if (!isPlaying) {
+                audioPlayer.src = button.dataset.src;
+                audioPlayer.loop = true;
+                audioPlayer.play().catch(err => console.error("Audio play failed:", err));
+                button.innerHTML = '<span class="material-symbols-outlined">pause</span>';
+                currentlyPlayingButton = button;
+            } else {
+                currentlyPlayingButton = null;
+            }
+        });
     }
 
 
@@ -833,6 +1005,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setupProgressView(); // This will only run if progress elements are on the page
         setupNotifications(); // This will only run if notification elements are on the page
         setupGoals(); // This will only run if goal elements are on the page
+        setupSoundscapes(); // This will only run if sound elements are on the page
     }
 
     main();
