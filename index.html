@@ -287,17 +287,25 @@
         const appContainer = document.getElementById('app-container');
         const authError = document.getElementById('auth-error');
         const userEmailSpan = document.getElementById('user-email');
-
         const loginBtn = document.getElementById('login-btn');
         const signupBtn = document.getElementById('signup-btn');
         const logoutBtn = document.getElementById('logout-btn');
-
         const emailInput = document.getElementById('email');
         const passwordInput = document.getElementById('password');
-
         const taskForm = document.getElementById('task-form');
         const taskInput = document.getElementById('task-input');
         const taskList = document.getElementById('task-list');
+
+        // --- UTILITY FUNCTIONS ---
+        function showError(message) {
+            authError.textContent = message;
+            authError.style.display = 'block';
+            setTimeout(() => {
+                if (authError.textContent === message) {
+                    authError.style.display = 'none';
+                }
+            }, 3000);
+        }
 
         // --- AUTHENTICATION ---
         auth.onAuthStateChanged(user => {
@@ -305,6 +313,7 @@
                 currentUser = user;
                 userTasksRef = db.ref(`users/${currentUser.uid}/tasks`);
                 showAppView();
+                syncOfflineQueue();
                 loadTasks();
             } else {
                 currentUser = null;
@@ -328,29 +337,22 @@
             passwordInput.value = '';
         }
 
-        function handleAuthAction(promise) {
-            promise.catch(error => {
-                authError.textContent = error.message;
-                authError.style.display = 'block';
-            });
-        }
-
         loginBtn.addEventListener('click', () => {
             const email = emailInput.value;
             const password = passwordInput.value;
             if (!email || !password) return;
-            handleAuthAction(auth.signInWithEmailAndPassword(email, password));
+            auth.signInWithEmailAndPassword(email, password).catch(err => showError(err.message));
         });
 
         signupBtn.addEventListener('click', () => {
             const email = emailInput.value;
             const password = passwordInput.value;
             if (!email || !password) return;
-            handleAuthAction(auth.createUserWithEmailAndPassword(email, password));
+            auth.createUserWithEmailAndPassword(email, password).catch(err => showError(err.message));
         });
 
         logoutBtn.addEventListener('click', () => {
-            auth.signOut();
+            auth.signOut().catch(err => showError(err.message));
         });
 
         // --- TASK MANAGEMENT ---
@@ -364,23 +366,51 @@
         });
 
         function addTask(text) {
-            if (!userTasksRef) return;
             const task = {
                 text: text,
                 completed: false,
-                createdAt: firebase.database.ServerValue.TIMESTAMP
+                createdAt: new Date().toISOString() // Use ISO string for offline
             };
-            userTasksRef.push(task);
+
+            if (!navigator.onLine) {
+                const offlineQueue = getOfflineQueue();
+                const tempId = `offline_${Date.now()}`;
+                task.id = tempId;
+                offlineQueue.push(task);
+                saveOfflineQueue(offlineQueue);
+                renderTask(tempId, task); // Optimistic UI update
+                console.log("Task saved offline.");
+                return;
+            }
+
+            if (!userTasksRef) return;
+            // For online creation, use Firebase's server timestamp
+            task.createdAt = firebase.database.ServerValue.TIMESTAMP;
+            userTasksRef.push(task).catch(err => showError(`Failed to add task: ${err.message}`));
         }
 
         function deleteTask(taskId) {
+            if (taskId.startsWith('offline_')) {
+                let queue = getOfflineQueue();
+                queue = queue.filter(task => task.id !== taskId);
+                saveOfflineQueue(queue);
+                document.querySelector(`[data-id="${taskId}"]`).remove();
+                return;
+            }
             if (!userTasksRef) return;
-            userTasksRef.child(taskId).remove();
+            userTasksRef.child(taskId).remove().catch(err => showError(`Failed to delete task: ${err.message}`));
         }
 
         function toggleTaskCompletion(taskId, completed) {
+            if (taskId.startsWith('offline_')) {
+                showError("Cannot modify offline tasks until synced.");
+                // Revert checkbox state
+                const checkbox = document.querySelector(`[data-id="${taskId}"] input[type="checkbox"]`);
+                if(checkbox) checkbox.checked = !completed;
+                return;
+            }
             if (!userTasksRef) return;
-            userTasksRef.child(taskId).update({ completed: completed });
+            userTasksRef.child(taskId).update({ completed: completed }).catch(err => showError(`Failed to update task: ${err.message}`));
         }
 
         function clearTasks() {
@@ -391,16 +421,13 @@
             const taskItem = document.createElement('li');
             taskItem.className = 'task-item';
             taskItem.dataset.id = taskId;
-            if (task.completed) {
-                taskItem.classList.add('completed');
-            }
+            if (task.completed) taskItem.classList.add('completed');
+            if (taskId.startsWith('offline_')) taskItem.style.opacity = '0.6';
 
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
             checkbox.checked = task.completed;
-            checkbox.addEventListener('change', () => {
-                toggleTaskCompletion(taskId, checkbox.checked);
-            });
+            checkbox.addEventListener('change', () => toggleTaskCompletion(taskId, checkbox.checked));
 
             const span = document.createElement('span');
             span.textContent = task.text;
@@ -408,38 +435,70 @@
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'delete-btn';
             deleteBtn.innerHTML = '&times;';
-            deleteBtn.addEventListener('click', () => {
-                deleteTask(taskId);
-            });
+            deleteBtn.addEventListener('click', () => deleteTask(taskId));
 
             taskItem.appendChild(checkbox);
             taskItem.appendChild(span);
             taskItem.appendChild(deleteBtn);
 
-            taskList.prepend(taskItem); // Add new tasks to the top
+            taskList.prepend(taskItem);
         }
 
         // --- DATA SYNCING & OFFLINE ---
+        function getOfflineQueue() {
+            if (!currentUser) return [];
+            return JSON.parse(localStorage.getItem(`studyflow-offline-queue-${currentUser.uid}`) || '[]');
+        }
+
+        function saveOfflineQueue(queue) {
+            if (!currentUser) return;
+            localStorage.setItem(`studyflow-offline-queue-${currentUser.uid}`, JSON.stringify(queue));
+        }
+
+        function syncOfflineQueue() {
+            if (!navigator.onLine || !userTasksRef) return;
+            const queue = getOfflineQueue();
+            if (queue.length === 0) return;
+
+            console.log(`Syncing ${queue.length} offline tasks...`);
+            const promises = queue.map(task => {
+                const { id, ...taskData } = task; // Don't save temporary id to firebase
+                taskData.createdAt = firebase.database.ServerValue.TIMESTAMP;
+                return userTasksRef.push(taskData);
+            });
+
+            Promise.all(promises)
+                .then(() => {
+                    console.log("Offline queue synced successfully.");
+                    saveOfflineQueue([]); // Clear the queue
+                    // The 'on' listener will refresh the UI automatically
+                })
+                .catch(err => showError(`Failed to sync offline tasks: ${err.message}`));
+        }
+
         function loadTasks() {
-            // Try to load from local storage first for faster UI render
             const localTasks = loadTasksFromLocal();
             if (localTasks) {
                 clearTasks();
                 Object.entries(localTasks).forEach(([id, task]) => renderTask(id, task));
             }
 
-            if (navigator.onLine && userTasksRef) {
+            if (userTasksRef) {
                 userTasksRef.on('value', snapshot => {
+                    if (!navigator.onLine) return; // Don't overwrite local view if offline
                     clearTasks();
                     const tasks = snapshot.val();
                     if (tasks) {
-                        Object.entries(tasks).forEach(([id, task]) => {
-                            renderTask(id, task);
-                        });
+                        Object.entries(tasks).forEach(([id, task]) => renderTask(id, task));
                         saveTasksToLocal(tasks);
                     } else {
                         localStorage.removeItem(`studyflow-tasks-${currentUser.uid}`);
                     }
+                    // Render any remaining offline tasks on top
+                    getOfflineQueue().forEach(task => renderTask(task.id, task));
+                }, error => {
+                    showError(error.message);
+                    console.error(error);
                 });
             }
         }
@@ -449,7 +508,8 @@
             try {
                 localStorage.setItem(`studyflow-tasks-${currentUser.uid}`, JSON.stringify(tasks));
             } catch (e) {
-                console.error("Could not save tasks to local storage.", e);
+                showError("Could not save tasks locally.");
+                console.error(e);
             }
         }
 
@@ -459,16 +519,16 @@
                 const tasks = localStorage.getItem(`studyflow-tasks-${currentUser.uid}`);
                 return tasks ? JSON.parse(tasks) : null;
             } catch (e) {
-                console.error("Could not load tasks from local storage.", e);
+                showError("Could not load local tasks.");
+                console.error(e);
                 return null;
             }
         }
 
-        // Listen for online/offline status changes
         window.addEventListener('online', () => {
             console.log("Back online. Syncing data...");
+            syncOfflineQueue();
             if(userTasksRef) {
-                // Re-attach listener to get fresh data
                 loadTasks();
             }
         });
@@ -476,7 +536,6 @@
         window.addEventListener('offline', () => {
             console.log("App is offline. Using local data.");
         });
-
     </script>
 </body>
 </html>
