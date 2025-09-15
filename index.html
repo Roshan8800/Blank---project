@@ -16,6 +16,13 @@
         --primary-900: #022a4c;
         --secondary-400: #27313a;
         --neutral-900: #111518;
+        --neutral-800: #1a2025;
+        --neutral-700: #27313a;
+        --neutral-500: #64748b;
+        --neutral-400: #9bacbb;
+      }
+      .form-input {
+        @apply w-full resize-none overflow-hidden rounded-xl border-2 border-transparent bg-[var(--neutral-700)] text-white placeholder:text-[var(--neutral-400)] focus:border-[var(--primary-500)] focus:outline-none focus:ring-0;
       }
       .blur-gradient-1 {
         background: radial-gradient(circle at 20% 30%, #068cf9 0%, transparent 40%),
@@ -342,9 +349,88 @@
                 <ul id="task-list">
                     <!-- Tasks will be rendered here -->
                 </ul>
+                <button id="show-new-goal-screen-btn" class="btn btn-secondary" style="margin-top: 20px;">Add New Goal</button>
             </main>
         </div>
     </div>
+
+<div id="new-goal-screen" style="display: none;">
+<div class="relative flex h-auto min-h-screen w-full flex-col justify-between overflow-x-hidden group/design-root" style='font-family: "Space Grotesk", "Noto Sans", sans-serif;'>
+<div class="flex flex-col gap-6 p-4">
+<header class="flex items-center justify-between">
+<button class="text-white" id="close-new-goal-btn">
+<svg class="lucide lucide-x" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M18 6 6 18"></path>
+<path d="m6 6 12 12"></path>
+</svg>
+</button>
+<h1 class="text-xl font-bold text-white">New Goal</h1>
+<div class="w-6"></div>
+</header>
+<main class="flex flex-col gap-4">
+<div class="relative">
+<label class="absolute -top-2 left-3 bg-[var(--neutral-700)] px-1 text-xs text-[var(--neutral-400)]" for="goal-title">Goal Title</label>
+<input class="form-input h-14 p-4 text-base" id="goal-title" placeholder="e.g. Master Quantum Physics" type="text"/>
+</div>
+<div class="relative">
+<label class="absolute -top-2 left-3 bg-[var(--neutral-700)] px-1 text-xs text-[var(--neutral-400)]" for="description">Description</label>
+<textarea class="form-input min-h-36 p-4 text-base" id="description" placeholder="Describe your goal in detail..."></textarea>
+</div>
+<div class="relative">
+<label class="absolute -top-2 left-3 bg-[var(--neutral-700)] px-1 text-xs text-[var(--neutral-400)]" for="target-date">Target Completion Date</label>
+<div class="relative">
+<input class="form-input h-14 p-4 pr-12 text-base" id="target-date" placeholder="Select a date" type="text"/>
+<div class="absolute inset-y-0 right-0 flex items-center pr-4 text-[var(--neutral-400)]">
+<svg fill="currentColor" height="24px" viewBox="0 0 256 256" width="24px" xmlns="http://www.w3.org/2000/svg">
+<path d="M208,32H184V24a8,8,0,0,0-16,0v8H88V24a8,8,0,0,0-16,0v8H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32ZM72,48v8a8,8,0,0,0,16,0V48h80v8a8,8,0,0,0,16,0V48h24V80H48V48ZM208,208H48V96H208V208Z"></path>
+</svg>
+</div>
+</div>
+</div>
+</main>
+</div>
+<footer class="sticky bottom-0">
+<div class="flex gap-4 p-4">
+<button id="cancel-new-goal-btn" class="flex h-12 flex-1 items-center justify-center rounded-full bg-[var(--neutral-700)] text-base font-bold text-white">Cancel</button>
+<button id="add-new-goal-btn" class="flex h-12 flex-1 items-center justify-center rounded-full bg-[var(--primary-500)] text-base font-bold text-white">Add Goal</button>
+</div>
+<nav class="flex border-t border-[var(--neutral-700)] bg-[var(--neutral-800)] px-4 pb-5 pt-2">
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-white" href="#">
+<div class="flex h-8 items-center justify-center">
+<svg fill="currentColor" height="24px" viewBox="0 0 256 256" width="24px" xmlns="http://www.w3.org/2000/svg">
+<path d="M232,64H208V56a16,16,0,0,0-16-16H64A16,16,0,0,0,48,56v8H24A16,16,0,0,0,8,80V96a40,40,0,0,0,40,40h3.65A80.13,80.13,0,0,0,120,191.61V216H96a8,8,0,0,0,0,16h64a8,8,0,0,0,0-16H136V191.58c31.94-3.23,58.44-25.64,68.08-55.58H208a40,40,0,0,0,40-40V80A16,16,0,0,0,232,64ZM48,120A24,24,0,0,1,24,96V80H48v32q0,4,.39,8ZM232,96a24,24,0,0,1-24,24h-.5a81.81,81.81,0,0,0,.5-8.9V80h24Z"></path>
+</svg>
+</div>
+<p class="text-xs font-medium">Goals</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-[var(--neutral-400)]" href="#">
+<div class="flex h-8 items-center justify-center">
+<svg fill="currentColor" height="24px" viewBox="0 0 256 256" width="24px" xmlns="http://www.w3.org/2000/svg">
+<path d="M224,128a8,8,0,0,1-8,8H128a8,8,0,0,1,0-16h88A8,8,0,0,1,224,128ZM128,72h88a8,8,0,0,0,0-16H128a8,8,0,0,0,0,16Zm88,112H128a8,8,0,0,0,0,16h88a8,8,0,0,0,0-16ZM82.34,42.34,56,68.69,45.66,58.34A8,8,0,0,0,34.34,69.66l16,16a8,8,0,0,0,11.32,0l32-32A8,8,0,0,0,82.34,42.34Zm0,64L56,132.69,45.66,122.34a8,8,0,0,0-11.32,11.32l16,16a8,8,0,0,0,11.32,0l32-32a8,8,0,0,0-11.32-11.32Zm0,64L56,196.69,45.66,186.34a8,8,0,0,0-11.32,11.32l16,16a8,8,0,0,0,11.32,0l32-32a8,8,0,0,0-11.32-11.32Z"></path>
+</svg>
+</div>
+<p class="text-xs font-medium">Tasks</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-[var(--neutral-400)]" href="#">
+<div class="flex h-8 items-center justify-center">
+<svg fill="currentColor" height="24px" viewBox="0 0 256 256" width="24px" xmlns="http://www.w3.org/2000/svg">
+<path d="M208,32H184V24a8,8,0,0,0-16,0v8H88V24a8,8,0,0,0-16,0v8H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32ZM72,48v8a8,8,0,0,0,16,0V48h80v8a8,8,0,0,0,16,0V48h24V80H48V48ZM208,208H48V96H208V208Z"></path>
+</svg>
+</div>
+<p class="text-xs font-medium">Planner</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-[var(--neutral-400)]" href="#">
+<div class="flex h-8 items-center justify-center">
+<svg fill="currentColor" height="24px" viewBox="0 0 256 256" width="24px" xmlns="http://www.w3.org/2000/svg">
+<path d="M232,208a8,8,0,0,1-8,8H32a8,8,0,0,1-8-8V48a8,8,0,0,1,16,0v94.37L90.73,98a8,8,0,0,1,10.07-.38l58.81,44.11L218.73,90a8,8,0,1,1,10.54,12l-64,56a8,8,0,0,1-10.07.38L96.39,114.29,40,163.63V200H224A8,8,0,0,1,232,208Z"></path>
+</svg>
+</div>
+<p class="text-xs font-medium">Progress</p>
+</a>
+</nav>
+</footer>
+</div>
+</div>
 
     <!-- Firebase v9+ SDK -->
     <script type="importmap">
@@ -426,6 +512,13 @@
         const taskInput = document.getElementById('task-input');
         const taskList = document.getElementById('task-list');
 
+        // New Goal Screen
+        const newGoalScreen = document.getElementById('new-goal-screen');
+        const showNewGoalScreenBtn = document.getElementById('show-new-goal-screen-btn');
+        const closeNewGoalBtn = document.getElementById('close-new-goal-btn');
+        const cancelNewGoalBtn = document.getElementById('cancel-new-goal-btn');
+        const addNewGoalBtn = document.getElementById('add-new-goal-btn');
+
         // Sign-in Screen
         const signinScreen = document.getElementById('signin-screen');
         const signinForm = document.getElementById('signin-form');
@@ -492,6 +585,16 @@
             signupEmailInput.focus();
         }
 
+        function showNewGoalScreenView() {
+            appDiv.style.display = 'none';
+            newGoalScreen.style.display = 'block';
+        }
+
+        function hideNewGoalScreenView() {
+            newGoalScreen.style.display = 'none';
+            appDiv.style.display = 'block';
+        }
+
         // --- AUTHENTICATION ---
         onAuthStateChanged(auth, user => {
             if (user) {
@@ -508,6 +611,14 @@
             }
         });
 
+        showNewGoalScreenBtn.addEventListener('click', showNewGoalScreenView);
+        closeNewGoalBtn.addEventListener('click', hideNewGoalScreenView);
+        cancelNewGoalBtn.addEventListener('click', hideNewGoalScreenView);
+        addNewGoalBtn.addEventListener('click', () => {
+            // TODO: Implement Add Goal functionality
+            console.log("Add Goal button clicked. Functionality not yet implemented.");
+            hideNewGoalScreenView();
+        });
         landingLoginBtn.addEventListener('click', showSigninScreen);
         landingSignupBtn.addEventListener('click', showSignupScreen);
         switchToSignupBtn.addEventListener('click', (e) => {
